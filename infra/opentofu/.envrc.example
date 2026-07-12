@@ -1,0 +1,12 @@
+# Copy to .envrc in this directory, fill in real values, then run
+# `direnv allow`. direnv will load these only while your shell is inside
+# infra/opentofu/, and unload them the moment you cd back out — they never
+# touch your global shell profile or leak into other projects.
+#
+# These are one-time bootstrap credentials for `tofu apply` only. The
+# running app uses a separate, narrowly-scoped token that Tofu itself
+# creates (see outputs.tf) — not these.
+
+export CLOUDFLARE_API_TOKEN="..."   # custom token: R2 Edit, Queues Edit, Account API Tokens Edit, Zone DNS Edit
+export AWS_ACCESS_KEY_ID="..."      # R2 API token access key, scoped to the tofu-state bucket
+export AWS_SECRET_ACCESS_KEY="..."  # R2 API token secret key, scoped to the tofu-state bucket

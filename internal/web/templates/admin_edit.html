@@ -1,0 +1,21 @@
+{{define "title"}}Edit - transients{{end}}
+{{define "content"}}
+<main class="narrow">
+  <header class="row">
+    <h1>Edit track</h1>
+    <nav><a href="/admin">Back</a></nav>
+  </header>
+
+  <form method="post" action="/admin/tracks/{{.Track.Slug}}/edit">
+    <label>
+      Title
+      <input type="text" name="title" value="{{.Track.Title}}" required>
+    </label>
+    <label>
+      Expires at (blank = never)
+      <input type="date" name="expires_at" value="{{.ExpiresAtValue}}">
+    </label>
+    <button type="submit">Save</button>
+  </form>
+</main>
+{{end}}

@@ -1,0 +1,38 @@
+{{define "title"}}Upload - transients{{end}}
+{{define "content"}}
+<main class="narrow">
+  <header class="row">
+    <h1>Upload</h1>
+    <nav><a href="/admin">Back</a></nav>
+  </header>
+
+  <form id="upload-form">
+    <label>
+      Audio file
+      <input type="file" id="file" accept="audio/*" required>
+    </label>
+    <label>
+      Title (optional, defaults to filename)
+      <input type="text" id="title">
+    </label>
+    <label>
+      Expires after (days, optional, blank = never)
+      <input type="number" id="expires-days" min="1">
+    </label>
+    <button type="submit" id="submit-btn">Upload</button>
+  </form>
+
+  <div id="progress-wrap" hidden>
+    <progress id="progress" value="0" max="100"></progress>
+    <p id="status-text">Uploading...</p>
+  </div>
+
+  <div id="result" hidden>
+    <p>Ready! Share link:</p>
+    <p><a id="result-link" href=""></a></p>
+  </div>
+
+  <p id="error" class="error" hidden></p>
+</main>
+<script src="/static/upload.js"></script>
+{{end}}

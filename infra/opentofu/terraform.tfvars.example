@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in real values. OpenTofu loads
+# terraform.tfvars automatically — no -var flags needed on tofu plan/apply.
+
+cloudflare_account_id = "..."
+cloudflare_zone_id    = "..."
+subdomain             = "share.yourdomain.com"
+vps_ipv4              = "..."

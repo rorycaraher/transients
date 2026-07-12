@@ -1,0 +1,40 @@
+{{define "title"}}Dashboard - transients{{end}}
+{{define "content"}}
+<main>
+  <header class="row">
+    <h1>transients</h1>
+    <nav>
+      <a href="/admin/upload">Upload</a>
+      <form method="post" action="/logout" class="inline"><button type="submit">Log out</button></form>
+    </nav>
+  </header>
+
+  {{if not .Tracks}}
+    <p>No tracks yet. <a href="/admin/upload">Upload one</a>, or drop a file into the R2 bucket via rclone.</p>
+  {{else}}
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Status</th><th>Expires</th><th>Created</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .Tracks}}
+      <tr>
+        <td>
+          {{if eq .Status "ready"}}<a href="/p/{{.Slug}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
+        </td>
+        <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+        <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</td>
+        <td>{{.CreatedAt.Format "2006-01-02"}}</td>
+        <td class="actions">
+          <a href="/admin/tracks/{{.Slug}}/edit">Edit</a>
+          <form method="post" action="/admin/tracks/{{.Slug}}/delete" class="inline" onsubmit="return confirm('Delete this track permanently?')">
+            <button type="submit" class="danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</main>
+{{end}}

@@ -1,0 +1,11 @@
+.env
+.env.local
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/infra/opentofu/.terraform/
+/infra/opentofu/*.tfstate*
+/infra/opentofu/.envrc
+/infra/opentofu/terraform.tfvars
+
