@@ -5,6 +5,7 @@ package r2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
+
+// ErrNotFound is returned by Head when the object doesn't exist in R2 (e.g.
+// deleted after its event notification was already enqueued).
+var ErrNotFound = errors.New("object not found")
 
 type Client struct {
 	s3      *s3.Client
@@ -73,6 +79,10 @@ func (c *Client) Head(ctx context.Context, key string) (*ObjectMeta, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		var respErr *smithyhttp.ResponseError
+		if errors.As(err, &respErr) && respErr.HTTPStatusCode() == 404 {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("head %s: %w", key, err)
 	}
 	meta := &ObjectMeta{}

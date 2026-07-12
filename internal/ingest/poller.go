@@ -6,8 +6,8 @@ package ingest
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -90,13 +90,8 @@ func (p *Poller) pollOnce(ctx context.Context) error {
 }
 
 func (p *Poller) handleMessage(ctx context.Context, msg queueMessage) error {
-	raw, err := base64.StdEncoding.DecodeString(msg.Body)
-	if err != nil {
-		return fmt.Errorf("base64 decode message body: %w", err)
-	}
-
 	var event r2Event
-	if err := json.Unmarshal(raw, &event); err != nil {
+	if err := json.Unmarshal([]byte(msg.Body), &event); err != nil {
 		return fmt.Errorf("unmarshal r2 event: %w", err)
 	}
 
@@ -124,6 +119,13 @@ func (p *Poller) ingestObject(ctx context.Context, key string) error {
 	}
 
 	meta, err := p.r2.Head(ctx, key)
+	if errors.Is(err, r2.ErrNotFound) {
+		// Object was deleted (e.g. via the admin dashboard) after this
+		// event was already enqueued. Nothing to ingest; ack and move on.
+		p.log.Warn("ingest: object no longer exists, dropping event", "object_key", key)
+		_ = p.store.MarkFailed(track.Slug)
+		return nil
+	}
 	if err != nil {
 		_ = p.store.MarkFailed(track.Slug)
 		return fmt.Errorf("head object %s: %w", key, err)

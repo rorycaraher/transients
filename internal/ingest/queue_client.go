@@ -29,7 +29,7 @@ type pullResponse struct {
 }
 
 type queueMessage struct {
-	Body     string `json:"body"` // base64-encoded for json/bytes content types
+	Body     string `json:"body"` // raw JSON text for R2 event notifications (CF-Content-Type: json)
 	ID       string `json:"id"`
 	LeaseID  string `json:"lease_id"`
 	Attempts int    `json:"attempts"`
