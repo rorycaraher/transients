@@ -1,19 +1,20 @@
 # transients
 
 A self-hosted, single-admin audio file host and player: upload an audio
-file, get a shareable link, recipients stream it in-browser with a
-waveform.
+file, get a shareable link, recipients stream it in-browser with a minimal
+progress-line player.
 
 ## How it works
 
 - Go backend, SQLite for metadata, server-rendered templates + minimal JS
-  (wavesurfer.js) — no build pipeline, one binary.
+  (a plain `<audio>` element driving a custom seek bar) — no build
+  pipeline, one binary.
 - Audio lives in a private Cloudflare R2 bucket. Files arrive two ways:
   - the browser uploads directly to R2 via a presigned PUT, or
   - you `rclone` files straight into the bucket from the CLI.
 - Both paths converge on one ingest pipeline: R2 fires object-create events
-  into a Cloudflare Queue, and the app polls that queue every ~10s, runs
-  ffmpeg to generate waveform peaks, and marks the track ready.
+  into a Cloudflare Queue, the app polls that queue every ~10s, and marks
+  the track ready as soon as the object is confirmed to exist in R2.
 - Share pages mint a fresh short-lived presigned GET URL on each load, so
   link expiry is enforced by R2 itself, not just by hiding the page.
 - OpenTofu manages the Cloudflare side (R2 bucket, Queue, DNS record, a
@@ -25,9 +26,8 @@ waveform.
 go build ./... && go vet ./... && go test ./...
 ```
 
-Requires `ffmpeg` on PATH locally (used by `internal/waveform` and its
-tests). Running the server locally still needs real R2 + Cloudflare
-credentials (see below) — there's no offline/mock mode.
+Running the server locally still needs real R2 + Cloudflare credentials
+(see below) — there's no offline/mock mode.
 
 ## Deploying
 
@@ -139,11 +139,9 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server
 Check `uname -m` on the VPS first — use `GOARCH=arm64` instead if it's an ARM
 box (e.g. Hetzner's CAX line).
 
-One-time setup on the VPS (`ffmpeg` is required at runtime — `internal/waveform`
-shells out to it):
+One-time setup on the VPS:
 
 ```sh
-sudo apt-get update && sudo apt-get install -y ffmpeg
 sudo useradd --system --home /var/lib/transients --create-home --shell /usr/sbin/nologin transients
 sudo mkdir -p /etc/transients
 ```

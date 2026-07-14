@@ -10,10 +10,8 @@ import (
 )
 
 type playerData struct {
-	Title    string          `json:"title"`
-	AudioURL string          `json:"audioUrl"`
-	Peaks    json.RawMessage `json:"peaks"`
-	Duration float64         `json:"duration"`
+	Title    string `json:"title"`
+	AudioURL string `json:"audioUrl"`
 }
 
 func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
@@ -47,16 +45,9 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peaks := json.RawMessage("[]")
-	if track.PeaksJSON.Valid {
-		peaks = json.RawMessage(track.PeaksJSON.String)
-	}
-
 	data := playerData{
 		Title:    track.Title,
 		AudioURL: audioURL,
-		Peaks:    peaks,
-		Duration: track.DurationSeconds.Float64,
 	}
 	dataJSON, err := json.Marshal(data)
 	if err != nil {

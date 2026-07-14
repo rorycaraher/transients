@@ -46,7 +46,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
       xhr.send(file);
     });
 
-    statusText.textContent = "Processing (generating waveform)...";
+    statusText.textContent = "Processing...";
     progress.removeAttribute("value");
 
     await pollStatus(slug);
@@ -73,9 +73,9 @@ async function pollStatus(slug) {
       return;
     }
     if (data.status === "failed") {
-      throw new Error("Waveform processing failed");
+      throw new Error("Processing failed");
     }
-    statusText.textContent = "Processing (generating waveform)...";
+    statusText.textContent = "Processing...";
     await new Promise((r) => setTimeout(r, 2000));
   }
 }

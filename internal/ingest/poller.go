@@ -1,7 +1,7 @@
 // Package ingest polls the Cloudflare Queue fed by R2 object-create event
-// notifications, and turns newly discovered objects into ready tracks
-// (generating waveform peaks along the way). It is the single ingestion path
-// for both presigned browser uploads and files dropped in via rclone.
+// notifications, and turns newly discovered objects into ready tracks. It is
+// the single ingestion path for both presigned browser uploads and files
+// dropped in via rclone.
 package ingest
 
 import (
@@ -11,14 +11,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"path"
 	"time"
 
 	"github.com/rorycaraher/transients/internal/idgen"
 	"github.com/rorycaraher/transients/internal/r2"
 	"github.com/rorycaraher/transients/internal/store"
-	"github.com/rorycaraher/transients/internal/waveform"
 )
 
 const (
@@ -131,20 +129,7 @@ func (p *Poller) ingestObject(ctx context.Context, key string) error {
 		return fmt.Errorf("head object %s: %w", key, err)
 	}
 
-	tmpPath, err := p.r2.DownloadToTempFile(ctx, key)
-	if err != nil {
-		_ = p.store.MarkFailed(track.Slug)
-		return fmt.Errorf("download object %s: %w", key, err)
-	}
-	defer os.Remove(tmpPath)
-
-	wf, err := waveform.ExtractResult(tmpPath)
-	if err != nil {
-		_ = p.store.MarkFailed(track.Slug)
-		return fmt.Errorf("extract waveform for %s: %w", key, err)
-	}
-
-	if err := p.store.MarkReady(track.Slug, meta.ContentType, meta.SizeBytes, wf.PeaksJSON, wf.DurationSeconds); err != nil {
+	if err := p.store.MarkReady(track.Slug, meta.ContentType, meta.SizeBytes); err != nil {
 		return fmt.Errorf("mark track ready: %w", err)
 	}
 

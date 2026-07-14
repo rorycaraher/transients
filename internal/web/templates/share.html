@@ -2,18 +2,20 @@
 {{define "content"}}
 <main class="narrow">
   <h1>{{.Track.Title}}</h1>
-  <div id="waveform"></div>
+  <audio id="audio" preload="metadata"></audio>
   <div class="player-controls">
     <button id="play-btn" class="play-btn" type="button" aria-label="Play">
       <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
       <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
     </button>
+    <div id="seek-bar" class="seek-bar">
+      <div id="seek-fill" class="seek-fill"></div>
+    </div>
     <span class="time-readout"><span id="time-current">0:00</span> / <span id="time-duration">0:00</span></span>
   </div>
 </main>
 <script>
   const PLAYER_DATA = {{.PlayerDataJSON}};
 </script>
-<script src="/static/wavesurfer.min.js"></script>
 <script src="/static/player.js"></script>
 {{end}}

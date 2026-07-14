@@ -17,17 +17,15 @@ const (
 )
 
 type Track struct {
-	Slug            string
-	ObjectKey       string
-	Title           string
-	Status          Status
-	ContentType     sql.NullString
-	SizeBytes       sql.NullInt64
-	PeaksJSON       sql.NullString
-	DurationSeconds sql.NullFloat64
-	ExpiresAt       sql.NullTime
-	CreatedAt       time.Time
-	ReadyAt         sql.NullTime
+	Slug        string
+	ObjectKey   string
+	Title       string
+	Status      Status
+	ContentType sql.NullString
+	SizeBytes   sql.NullInt64
+	ExpiresAt   sql.NullTime
+	CreatedAt   time.Time
+	ReadyAt     sql.NullTime
 }
 
 func (t *Track) Expired() bool {
@@ -65,21 +63,21 @@ func (s *Store) CreateFromDiscovery(slug, objectKey, title string) error {
 
 func (s *Store) GetByObjectKey(objectKey string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, peaks_json, duration_seconds, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, expires_at, created_at, ready_at
 		 FROM tracks WHERE object_key = ?`, objectKey))
 }
 
 func (s *Store) GetBySlug(slug string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, peaks_json, duration_seconds, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, expires_at, created_at, ready_at
 		 FROM tracks WHERE slug = ?`, slug))
 }
 
-func (s *Store) MarkReady(slug string, contentType string, sizeBytes int64, peaksJSON string, durationSeconds float64) error {
+func (s *Store) MarkReady(slug string, contentType string, sizeBytes int64) error {
 	_, err := s.db.Exec(
-		`UPDATE tracks SET status = ?, content_type = ?, size_bytes = ?, peaks_json = ?, duration_seconds = ?, ready_at = CURRENT_TIMESTAMP
+		`UPDATE tracks SET status = ?, content_type = ?, size_bytes = ?, ready_at = CURRENT_TIMESTAMP
 		 WHERE slug = ?`,
-		StatusReady, contentType, sizeBytes, peaksJSON, durationSeconds, slug,
+		StatusReady, contentType, sizeBytes, slug,
 	)
 	return err
 }
@@ -124,7 +122,7 @@ func (s *Store) Delete(slug string) error {
 
 func (s *Store) ListAll() ([]*Track, error) {
 	rows, err := s.db.Query(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, peaks_json, duration_seconds, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, expires_at, created_at, ready_at
 		 FROM tracks ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -165,7 +163,7 @@ func (s *Store) scan(row rowScanner) (*Track, error) {
 	var t Track
 	err := row.Scan(
 		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
-		&t.ContentType, &t.SizeBytes, &t.PeaksJSON, &t.DurationSeconds, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt,
+		&t.ContentType, &t.SizeBytes, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt,
 	)
 	if err != nil {
 		return nil, err
