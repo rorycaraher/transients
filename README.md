@@ -174,8 +174,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now transients
 ```
 
-The app listens on `127.0.0.1:8080` (not exposed publicly on its own) —
-Caddy is what terminates TLS and reverse-proxies to it.
+The app listens on `PORT` from your `.env` (`8090` in this repo's
+template — not exposed publicly on its own). Caddy is what terminates TLS
+and reverse-proxies to it, so `Caddyfile.snippet`'s `reverse_proxy` target
+must be kept in sync with whatever you set `PORT` to.
 
 To ship new code later: rebuild the binary, `scp` it to `/tmp/transients` on
 the VPS, then `sudo mv /tmp/transients /usr/local/bin/transients && sudo

@@ -1,5 +1,6 @@
 .env
 .env.local
+/transients
 *.db
 *.db-journal
 *.db-wal
