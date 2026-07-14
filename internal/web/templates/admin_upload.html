@@ -1,4 +1,4 @@
-{{define "title"}}Upload - transients{{end}}
+{{define "title"}}NLTL - Upload{{end}}
 {{define "content"}}
 <main class="narrow">
   <header class="row">
@@ -18,6 +18,10 @@
     <label>
       Expires after (days, optional, blank = never)
       <input type="number" id="expires-days" min="1">
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" id="downloadable">
+      Downloadable
     </label>
     <button type="submit" id="submit-btn">Upload</button>
   </form>

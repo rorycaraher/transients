@@ -1,14 +1,14 @@
 // Package r2 wraps the S3-compatible API for Cloudflare R2: presigned
-// PUT/GET URLs for browser upload/playback, and object download/delete for
-// the ingest pipeline.
+// PUT/GET URLs for browser upload/playback, and object head/delete for the
+// ingest pipeline.
 package r2
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -68,6 +68,29 @@ func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) 
 	return req.URL, nil
 }
 
+// PresignGetAttachment returns a presigned URL that forces the browser to
+// download the object as filename, rather than rendering it inline like
+// PresignGet.
+func (c *Client) PresignGetAttachment(ctx context.Context, key string, ttl time.Duration, filename string) (string, error) {
+	req, err := c.presign.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket:                     aws.String(c.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(contentDisposition(filename)),
+	}, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", fmt.Errorf("presign get attachment %s: %w", key, err)
+	}
+	return req.URL, nil
+}
+
+// contentDisposition builds an RFC 6266 attachment disposition value: an
+// ASCII-safe quoted fallback plus a UTF-8 filename* for names containing
+// characters outside it.
+func contentDisposition(filename string) string {
+	safe := strings.NewReplacer("\r", "", "\n", "", `"`, "'").Replace(filename)
+	return fmt.Sprintf(`attachment; filename="%s"; filename*=UTF-8''%s`, safe, url.PathEscape(filename))
+}
+
 type ObjectMeta struct {
 	ContentType string
 	SizeBytes   int64
@@ -93,31 +116,6 @@ func (c *Client) Head(ctx context.Context, key string) (*ObjectMeta, error) {
 		meta.SizeBytes = *out.ContentLength
 	}
 	return meta, nil
-}
-
-// DownloadToTempFile fetches the object and writes it to a temp file,
-// returning its path. The caller is responsible for removing it.
-func (c *Client) DownloadToTempFile(ctx context.Context, key string) (string, error) {
-	out, err := c.s3.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(c.bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return "", fmt.Errorf("get object %s: %w", key, err)
-	}
-	defer out.Body.Close()
-
-	f, err := os.CreateTemp("", "transients-ingest-*")
-	if err != nil {
-		return "", fmt.Errorf("create temp file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, out.Body); err != nil {
-		os.Remove(f.Name())
-		return "", fmt.Errorf("write temp file: %w", err)
-	}
-	return f.Name(), nil
 }
 
 func (c *Client) Delete(ctx context.Context, key string) error {

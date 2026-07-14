@@ -5,15 +5,15 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/rorycaraher/transients/internal/store"
 )
 
 type playerData struct {
-	Title    string          `json:"title"`
-	AudioURL string          `json:"audioUrl"`
-	Peaks    json.RawMessage `json:"peaks"`
-	Duration float64         `json:"duration"`
+	Title    string `json:"title"`
+	AudioURL string `json:"audioUrl"`
 }
 
 func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +21,7 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 
 	track, err := s.store.GetBySlug(slug)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.handleNotFound(w, r)
 		return
 	}
 	if err != nil {
@@ -31,7 +31,7 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if track.Status != store.StatusReady {
-		http.NotFound(w, r)
+		s.handleNotFound(w, r)
 		return
 	}
 
@@ -47,16 +47,9 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peaks := json.RawMessage("[]")
-	if track.PeaksJSON.Valid {
-		peaks = json.RawMessage(track.PeaksJSON.String)
-	}
-
 	data := playerData{
 		Title:    track.Title,
 		AudioURL: audioURL,
-		Peaks:    peaks,
-		Duration: track.DurationSeconds.Float64,
 	}
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
@@ -65,8 +58,32 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.render(w, "share.html", map[string]any{
+	templateData := map[string]any{
 		"Track":          track,
 		"PlayerDataJSON": template.JS(dataJSON),
-	})
+	}
+
+	if track.Downloadable {
+		downloadURL, err := s.r2.PresignGetAttachment(r.Context(), track.ObjectKey, s.cfg.PresignedGetTTL, downloadFilename(track))
+		if err != nil {
+			s.log.Error("presign get attachment failed", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		templateData["DownloadURL"] = downloadURL
+	}
+
+	s.render(w, "share.html", templateData)
+}
+
+// downloadFilename derives the filename a downloaded track should be saved
+// as: the track's title, plus the object key's extension if the title
+// doesn't already end with it (rclone-discovered tracks have the extension
+// baked into the title already, since it's just the R2 object's filename).
+func downloadFilename(track *store.Track) string {
+	ext := path.Ext(track.ObjectKey)
+	if ext == "" || strings.HasSuffix(strings.ToLower(track.Title), strings.ToLower(ext)) {
+		return track.Title
+	}
+	return track.Title + ext
 }

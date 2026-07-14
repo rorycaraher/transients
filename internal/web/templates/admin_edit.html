@@ -1,4 +1,4 @@
-{{define "title"}}Edit - transients{{end}}
+{{define "title"}}NLTL - Edit{{end}}
 {{define "content"}}
 <main class="narrow">
   <header class="row">
@@ -14,6 +14,10 @@
     <label>
       Expires at (blank = never)
       <input type="date" name="expires_at" value="{{.ExpiresAtValue}}">
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" name="downloadable" {{if .Track.Downloadable}}checked{{end}}>
+      Downloadable
     </label>
     <button type="submit">Save</button>
   </form>

@@ -1,4 +1,4 @@
-{{define "title"}}Dashboard - transients{{end}}
+{{define "title"}}NLTL - Dashboard{{end}}
 {{define "content"}}
 <main>
   <header class="row">
@@ -20,7 +20,7 @@
       {{range .Tracks}}
       <tr>
         <td>
-          {{if eq .Status "ready"}}<a href="/p/{{.Slug}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
+          {{if eq .Status "ready"}}<a href="/t/{{.Slug}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
         </td>
         <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
         <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</td>

@@ -7,6 +7,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
 
   const title = document.getElementById("title").value.trim();
   const expiresDays = document.getElementById("expires-days").value.trim();
+  const downloadable = document.getElementById("downloadable").checked;
 
   const submitBtn = document.getElementById("submit-btn");
   const progressWrap = document.getElementById("progress-wrap");
@@ -27,6 +28,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
         filename: file.name,
         content_type: file.type || "application/octet-stream",
         expires_in_days: expiresDays ? Number(expiresDays) : undefined,
+        downloadable,
       }),
     });
     if (!requestResp.ok) throw new Error("Failed to prepare upload");
@@ -46,7 +48,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
       xhr.send(file);
     });
 
-    statusText.textContent = "Processing (generating waveform)...";
+    statusText.textContent = "Processing...";
     progress.removeAttribute("value");
 
     await pollStatus(slug);
@@ -73,9 +75,9 @@ async function pollStatus(slug) {
       return;
     }
     if (data.status === "failed") {
-      throw new Error("Waveform processing failed");
+      throw new Error("Processing failed");
     }
-    statusText.textContent = "Processing (generating waveform)...";
+    statusText.textContent = "Processing...";
     await new Promise((r) => setTimeout(r, 2000));
   }
 }
