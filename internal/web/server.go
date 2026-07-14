@@ -34,6 +34,8 @@ func (s *Server) Mux() http.Handler {
 
 	mux.Handle("/static/", staticHandler())
 
+	mux.HandleFunc("GET /{$}", s.handleHome)
+
 	mux.HandleFunc("GET /login", s.handleLoginForm)
 	mux.HandleFunc("POST /login", s.handleLoginSubmit)
 	mux.HandleFunc("POST /logout", s.handleLogout)

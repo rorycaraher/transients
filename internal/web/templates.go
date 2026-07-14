@@ -14,6 +14,7 @@ var templateFS embed.FS
 var staticFS embed.FS
 
 var pageNames = []string{
+	"home.html",
 	"login.html",
 	"admin_dashboard.html",
 	"admin_upload.html",
