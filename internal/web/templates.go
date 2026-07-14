@@ -58,8 +58,10 @@ var pageNames = []string{
 func loadTemplates() (map[string]*template.Template, error) {
 	out := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
-		t, err := template.New(name).Funcs(template.FuncMap{"static": staticURL}).
-			ParseFS(templateFS, "templates/layout.html", "templates/"+name)
+		t, err := template.New(name).Funcs(template.FuncMap{
+			"static": staticURL,
+			"add1":   func(i int) int { return i + 1 },
+		}).ParseFS(templateFS, "templates/layout.html", "templates/"+name)
 		if err != nil {
 			return nil, fmt.Errorf("parse template %s: %w", name, err)
 		}

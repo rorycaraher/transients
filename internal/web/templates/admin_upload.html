@@ -1,16 +1,15 @@
 {{define "title"}}NLTL - Upload{{end}}
 {{define "content"}}
 <main class="narrow">
-  <header class="row">
-    <h1>Upload</h1>
-    <nav><a class="btn-ghost" href="/admin">Back</a></nav>
-  </header>
+  <a class="back-link" href="/admin">&#8592; Back</a>
+  <h1>Upload a file</h1>
 
   <form id="upload-form">
-    <label>
-      Audio file
+    <div id="dropzone" class="dropzone">
+      <div class="hint" id="dropzone-hint">Drag &amp; drop or click to select file</div>
+      <div class="filename" id="dropzone-filename">No file chosen</div>
       <input type="file" id="file" accept="audio/*" required>
-    </label>
+    </div>
     <label>
       Title (optional, defaults to filename)
       <input type="text" id="title">
@@ -23,7 +22,7 @@
       <input type="checkbox" id="downloadable">
       Downloadable
     </label>
-    <button type="submit" id="submit-btn">Upload</button>
+    <button type="submit" id="submit-btn" class="btn-block" disabled>Generate private link</button>
   </form>
 
   <div id="progress-wrap" hidden>
@@ -31,9 +30,18 @@
     <p id="status-text">Uploading...</p>
   </div>
 
-  <div id="result" hidden>
-    <p>Ready! Share link:</p>
-    <p><a id="result-link" href=""></a></p>
+  <div id="result" class="result-panel" hidden>
+    <div class="eyebrow">Upload complete</div>
+    <div class="result-title" id="result-title"></div>
+    <div class="eyebrow">Private link</div>
+    <div class="link-row">
+      <div class="link-value" id="result-link-value"></div>
+      <button type="button" id="copy-btn">Copy</button>
+    </div>
+    <div class="result-actions">
+      <a id="result-view" href="">View page</a>
+      <a id="result-reset">Upload another</a>
+    </div>
   </div>
 
   <p id="error" class="error" hidden></p>

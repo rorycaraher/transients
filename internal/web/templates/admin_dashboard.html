@@ -1,40 +1,43 @@
 {{define "title"}}NLTL - Dashboard{{end}}
 {{define "content"}}
-<main>
-  <header class="row">
-    <h1>transients</h1>
-    <nav>
-      <a class="btn btn-primary" href="/admin/upload">Upload</a>
+<main class="wide">
+  <div class="list-header">
+    <h1>Your files</h1>
+    <nav class="row">
+      <span class="count">{{printf "%02d" (len .Tracks)}} ITEMS</span>
+      <a class="btn btn-primary" href="/admin/upload">+ Upload</a>
       <form method="post" action="/logout" class="inline"><button type="submit" class="btn-ghost">Log out</button></form>
     </nav>
-  </header>
+  </div>
 
   {{if not .Tracks}}
-    <p>No tracks yet. <a href="/admin/upload">Upload one</a>, or drop a file into the R2 bucket via rclone.</p>
+    <p class="empty-state">Nothing uploaded yet. <a href="/admin/upload">Upload one</a>, or drop a file into the R2 bucket via rclone.</p>
   {{else}}
-  <table>
-    <thead>
-      <tr><th>Title</th><th>Status</th><th>Expires</th><th>Created</th><th></th></tr>
-    </thead>
-    <tbody>
-      {{range .Tracks}}
-      <tr>
-        <td>
-          {{if eq .Status "ready"}}<a href="/t/{{.Slug}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
-        </td>
-        <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
-        <td>{{if .ExpiresAt.Valid}}{{.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</td>
-        <td>{{.CreatedAt.Format "2006-01-02"}}</td>
-        <td class="actions">
-          <a href="/admin/tracks/{{.Slug}}/edit">Edit</a>
-          <form method="post" action="/admin/tracks/{{.Slug}}/delete" class="inline" onsubmit="return confirm('Delete this track permanently?')">
-            <button type="submit" class="danger">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
+  <div class="grid-header">
+    <div>#</div>
+    <div>Title</div>
+    <div>Status</div>
+    <div>Expires</div>
+    <div>Added</div>
+    <div></div>
+  </div>
+  {{range $i, $t := .Tracks}}
+  <div class="grid-row">
+    <div class="index">{{printf "%02d" (add1 $i)}}</div>
+    <div class="title">
+      {{if eq $t.Status "ready"}}<a href="/t/{{$t.Slug}}">{{$t.Title}}</a>{{else}}{{$t.Title}}{{end}}
+    </div>
+    <div class="status status-{{$t.Status}}">{{$t.Status}}</div>
+    <div class="meta">{{if $t.ExpiresAt.Valid}}{{$t.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</div>
+    <div class="meta">{{$t.CreatedAt.Format "2006-01-02"}}</div>
+    <div class="row-actions">
+      <a href="/admin/tracks/{{$t.Slug}}/edit">Edit</a>
+      <form method="post" action="/admin/tracks/{{$t.Slug}}/delete" class="inline" onsubmit="return confirm('Delete this track permanently?')">
+        <button type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+  {{end}}
   {{end}}
 </main>
 {{end}}
