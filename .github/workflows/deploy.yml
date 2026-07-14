@@ -3,6 +3,13 @@ name: Deploy
 on:
   push:
     branches: [main]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/web/templates/**'
+      - 'internal/web/static/**'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
