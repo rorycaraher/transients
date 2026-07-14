@@ -103,7 +103,7 @@ tofu output -raw cf_api_token
 tofu output queue_id
 ```
 
-### 3. Build `.env` on the VPS
+### 3. Build the env file
 
 Copy `.env.example` to `.env` and fill it in:
 
@@ -113,6 +113,8 @@ Copy `.env.example` to `.env` and fill it in:
 - `SESSION_SECRET` — `openssl rand -hex 32`
 - `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
   `CF_API_TOKEN`, `CF_QUEUE_ID` — from the `tofu output` values above
+
+You'll copy this to `/etc/transients/env` on the VPS in step 5.
 
 ### 4. Wire up Caddy
 
@@ -124,14 +126,60 @@ whatever else Caddy is already serving), then:
 sudo systemctl reload caddy
 ```
 
-### 5. Run the app
+### 5. Build and install the binary
+
+The app is a single static binary — `modernc.org/sqlite` is a pure-Go SQLite
+driver, so cross-compiling from your dev machine needs no C toolchain and no
+Go installed on the VPS at all:
 
 ```sh
-docker compose up -d
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server
+```
+
+Check `uname -m` on the VPS first — use `GOARCH=arm64` instead if it's an ARM
+box (e.g. Hetzner's CAX line).
+
+One-time setup on the VPS (`ffmpeg` is required at runtime — `internal/waveform`
+shells out to it):
+
+```sh
+sudo apt-get update && sudo apt-get install -y ffmpeg
+sudo useradd --system --home /var/lib/transients --create-home --shell /usr/sbin/nologin transients
+sudo mkdir -p /etc/transients
+```
+
+Copy the binary, the env file from step 3, and the systemd unit over (run
+from your dev machine):
+
+```sh
+scp transients you@vps:/tmp/transients
+scp .env you@vps:/tmp/env
+scp deploy/transients.service you@vps:/tmp/transients.service
+```
+
+Then on the VPS:
+
+```sh
+sudo mv /tmp/transients /usr/local/bin/transients
+sudo chmod +x /usr/local/bin/transients
+
+sudo mv /tmp/env /etc/transients/env
+sudo chown root:transients /etc/transients/env
+sudo chmod 640 /etc/transients/env
+
+sudo mv /tmp/transients.service /etc/systemd/system/transients.service
+sudo chown transients:transients /var/lib/transients
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now transients
 ```
 
 The app listens on `127.0.0.1:8080` (not exposed publicly on its own) —
 Caddy is what terminates TLS and reverse-proxies to it.
+
+To ship new code later: rebuild the binary, `scp` it to `/tmp/transients` on
+the VPS, then `sudo mv /tmp/transients /usr/local/bin/transients && sudo
+systemctl restart transients`.
 
 ### Verify
 
@@ -145,8 +193,8 @@ Caddy is what terminates TLS and reverse-proxies to it.
 
 ## Local mode
 
-Run the containerized app on `localhost`, still talking to real R2 and a
-real Cloudflare Queue — just a separate `dev` set of resources, never
+Run the app directly on `localhost` with `go run`, still talking to real R2
+and a real Cloudflare Queue — just a separate `dev` set of resources, never
 production's. (Sharing production's bucket/queue would mean two pollers
 racing over the same Queue messages, and test uploads polluting your real
 dashboard.)
@@ -178,17 +226,18 @@ Switch back to production any time with `tofu workspace select default`.
 
 ```sh
 cp .env.local.example .env.local   # then fill in the dev workspace's outputs above
-docker compose up --build
+set -a; source .env.local; set +a
+go run ./cmd/server
 ```
 
-`docker-compose.override.yml` is auto-merged by plain `docker compose up` —
-no flags needed. It points the container at `.env.local` instead of `.env`
-and uses a separate Docker volume, so it can never collide with a
-production `.env` or volume. `BASE_URL=http://localhost:8080` in
-`.env.local.example` is deliberate: modern browsers treat `localhost`
-itself as a secure context, so the app's `Secure` session cookie still gets
-set and sent correctly with zero code changes — this only holds for
-literally `http://localhost`, not a LAN IP or another hostname.
+`DB_PATH=./local.db` in `.env.local.example` keeps the dev SQLite file
+local to your checkout (already covered by `.gitignore`'s `*.db` pattern),
+so it can never collide with a production database.
+`BASE_URL=http://localhost:8080` is deliberate: modern browsers treat
+`localhost` itself as a secure context, so the app's `Secure` session
+cookie still gets set and sent correctly with zero code changes — this
+only holds for literally `http://localhost`, not a LAN IP or another
+hostname.
 
-Rebuild after code changes with the same `docker compose up --build`; there's
-no hot-reload/live-mount tooling here, by design.
+Re-run `go run ./cmd/server` after code changes; there's no hot-reload
+tooling here, by design.

@@ -30,7 +30,7 @@ func Load() (*Config, error) {
 	c := &Config{
 		Port:              getenv("PORT", "8080"),
 		BaseURL:           os.Getenv("BASE_URL"),
-		DBPath:            getenv("DB_PATH", "/data/app.db"),
+		DBPath:            getenv("DB_PATH", "/var/lib/transients/app.db"),
 		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
 		SessionSecret:     os.Getenv("SESSION_SECRET"),
 		R2AccountID:       os.Getenv("R2_ACCOUNT_ID"),
