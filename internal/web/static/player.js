@@ -25,6 +25,27 @@ audio.addEventListener("loadedmetadata", () => {
 });
 audio.addEventListener("timeupdate", updateProgress);
 
+// Diagnostics for an intermittent bug where playback halts mid-track with
+// no visible error; these events would otherwise fail silently.
+function mediaState() {
+  return {
+    currentTime: audio.currentTime,
+    duration: audio.duration,
+    networkState: audio.networkState,
+    readyState: audio.readyState,
+  };
+}
+audio.addEventListener("error", () => {
+  const err = audio.error;
+  console.error("[player] error", { code: err?.code, message: err?.message, ...mediaState() });
+});
+audio.addEventListener("stalled", () => {
+  console.warn("[player] stalled", mediaState());
+});
+audio.addEventListener("waiting", () => {
+  console.warn("[player] waiting", mediaState());
+});
+
 function setPlaying(playing) {
   playBtn.classList.toggle("is-playing", playing);
   playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
