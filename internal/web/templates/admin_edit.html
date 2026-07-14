@@ -1,10 +1,8 @@
 {{define "title"}}NLTL - Edit{{end}}
 {{define "content"}}
 <main class="narrow">
-  <header class="row">
-    <h1>Edit track</h1>
-    <nav><a class="btn-ghost" href="/admin">Back</a></nav>
-  </header>
+  <a class="back-link" href="/admin">&#8592; Back</a>
+  <h1>Edit track</h1>
 
   <form method="post" action="/admin/tracks/{{.Track.Slug}}/edit">
     <label>
@@ -19,7 +17,7 @@
       <input type="checkbox" name="downloadable" {{if .Track.Downloadable}}checked{{end}}>
       Downloadable
     </label>
-    <button type="submit">Save</button>
+    <button type="submit" class="btn-block">Save</button>
   </form>
 </main>
 {{end}}

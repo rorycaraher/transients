@@ -4,12 +4,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0b0c">
+  <meta name="theme-color" content="#141414">
   <title>{{block "title" .}}NLTL{{end}}</title>
   <link rel="stylesheet" href="{{static "style.css"}}">
 </head>
 <body>
+  <header class="chrome-header">
+    <a class="wordmark" href="/">TRANSIENTS</a>
+  </header>
   {{block "content" .}}{{end}}
+  <footer class="chrome-footer">PRIVATE LINKS &#8212; NOT INDEXED &#8212; SHARE WITH CARE</footer>
 </body>
 </html>
 {{end}}

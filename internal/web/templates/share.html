@@ -1,19 +1,27 @@
 {{define "title"}}NLTL - {{.Track.Title}}{{end}}
 {{define "content"}}
 <main class="narrow">
+  <div class="eyebrow">Track</div>
   <h1>{{.Track.Title}}</h1>
   <audio id="audio" preload="metadata"></audio>
-  <div class="player-controls">
-    <button id="play-btn" class="play-btn" type="button" aria-label="Play">
-      <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-      <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
-    </button>
-    <div id="seek-bar" class="seek-bar">
-      <div id="seek-fill" class="seek-fill"></div>
+  <div class="player-box">
+    <div class="player-controls">
+      <button id="play-btn" class="play-btn" type="button" aria-label="Play">
+        <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <div class="seek-col">
+        <div id="seek-bar" class="seek-bar">
+          <div id="seek-fill" class="seek-fill"></div>
+        </div>
+        <div class="time-readout">
+          <span id="time-current">0:00</span>
+          <span id="time-duration">0:00</span>
+        </div>
+      </div>
     </div>
-    <span class="time-readout"><span id="time-current">0:00</span> / <span id="time-duration">0:00</span></span>
   </div>
-  {{if .DownloadURL}}<a class="btn-ghost" href="{{.DownloadURL}}">Download</a>{{end}}
+  {{if .DownloadURL}}<a class="btn-ghost btn-block" href="{{.DownloadURL}}">Download file</a>{{end}}
 </main>
 <script>
   const PLAYER_DATA = {{.PlayerDataJSON}};

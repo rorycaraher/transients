@@ -95,7 +95,7 @@ func TestLoginThenDashboard(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 for authenticated dashboard, got %d: %s", w.Code, w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), "No tracks yet") {
+	if !strings.Contains(w.Body.String(), "Nothing uploaded yet") {
 		t.Fatalf("expected empty-state message in dashboard body")
 	}
 }
