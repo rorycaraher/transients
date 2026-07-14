@@ -40,7 +40,7 @@ func (s *Server) Mux() http.Handler {
 	mux.HandleFunc("POST /login", s.handleLoginSubmit)
 	mux.HandleFunc("POST /logout", s.handleLogout)
 
-	mux.HandleFunc("GET /p/{slug}", s.handleShare)
+	mux.HandleFunc("GET /t/{slug}", s.handleShare)
 
 	mux.Handle("GET /admin", s.requireAuth(s.handleAdminDashboard))
 	mux.Handle("GET /admin/upload", s.requireAuth(s.handleUploadForm))
@@ -49,6 +49,10 @@ func (s *Server) Mux() http.Handler {
 	mux.Handle("GET /admin/tracks/{slug}/edit", s.requireAuth(s.handleEditForm))
 	mux.Handle("POST /admin/tracks/{slug}/edit", s.requireAuth(s.handleEditSubmit))
 	mux.Handle("POST /admin/tracks/{slug}/delete", s.requireAuth(s.handleDelete))
+
+	// Catch-all fallback: more specific patterns above always win, so this
+	// only fires for unmatched routes.
+	mux.HandleFunc("/", s.handleNotFound)
 
 	return mux
 }

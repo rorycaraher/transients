@@ -19,7 +19,7 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 
 	track, err := s.store.GetBySlug(slug)
 	if errors.Is(err, store.ErrNotFound) {
-		http.NotFound(w, r)
+		s.handleNotFound(w, r)
 		return
 	}
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if track.Status != store.StatusReady {
-		http.NotFound(w, r)
+		s.handleNotFound(w, r)
 		return
 	}
 

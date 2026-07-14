@@ -85,7 +85,7 @@ func (s *Server) handleUploadStatus(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]any{"status": track.Status}
 	if track.Status == store.StatusReady {
-		resp["share_url"] = s.cfg.BaseURL + "/p/" + track.Slug
+		resp["share_url"] = s.cfg.BaseURL + "/t/" + track.Slug
 	}
 	writeJSON(w, resp)
 }

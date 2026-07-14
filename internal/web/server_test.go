@@ -162,12 +162,28 @@ func TestPublicShareRouteNoAuthRequired(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()
 
-	req := httptest.NewRequest(http.MethodGet, "/p/does-not-exist", nil)
+	req := httptest.NewRequest(http.MethodGet, "/t/does-not-exist", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for unknown slug, got %d", w.Code)
+	}
+}
+
+func TestUnmatchedRouteRendersNotFoundPage(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	req := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unmatched route, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Not found") {
+		t.Fatalf("expected not-found page body, got %s", w.Body.String())
 	}
 }
 

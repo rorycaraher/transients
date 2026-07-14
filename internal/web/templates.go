@@ -21,6 +21,7 @@ var pageNames = []string{
 	"admin_edit.html",
 	"share.html",
 	"share_expired.html",
+	"not_found.html",
 }
 
 func loadTemplates() (map[string]*template.Template, error) {
@@ -36,12 +37,17 @@ func loadTemplates() (map[string]*template.Template, error) {
 }
 
 func (s *Server) render(w http.ResponseWriter, page string, data any) {
+	s.renderStatus(w, page, http.StatusOK, data)
+}
+
+func (s *Server) renderStatus(w http.ResponseWriter, page string, status int, data any) {
 	t, ok := s.tmpl[page]
 	if !ok {
 		http.Error(w, "template not found", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
 	if err := t.ExecuteTemplate(w, "layout", data); err != nil {
 		s.log.Error("template render failed", "page", page, "err", err)
 	}
