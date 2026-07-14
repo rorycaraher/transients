@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -64,6 +66,29 @@ func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) 
 		return "", fmt.Errorf("presign get %s: %w", key, err)
 	}
 	return req.URL, nil
+}
+
+// PresignGetAttachment returns a presigned URL that forces the browser to
+// download the object as filename, rather than rendering it inline like
+// PresignGet.
+func (c *Client) PresignGetAttachment(ctx context.Context, key string, ttl time.Duration, filename string) (string, error) {
+	req, err := c.presign.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket:                     aws.String(c.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(contentDisposition(filename)),
+	}, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", fmt.Errorf("presign get attachment %s: %w", key, err)
+	}
+	return req.URL, nil
+}
+
+// contentDisposition builds an RFC 6266 attachment disposition value: an
+// ASCII-safe quoted fallback plus a UTF-8 filename* for names containing
+// characters outside it.
+func contentDisposition(filename string) string {
+	safe := strings.NewReplacer("\r", "", "\n", "", `"`, "'").Replace(filename)
+	return fmt.Sprintf(`attachment; filename="%s"; filename*=UTF-8''%s`, safe, url.PathEscape(filename))
 }
 
 type ObjectMeta struct {

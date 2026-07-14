@@ -13,6 +13,7 @@
     </div>
     <span class="time-readout"><span id="time-current">0:00</span> / <span id="time-duration">0:00</span></span>
   </div>
+  {{if .DownloadURL}}<a class="btn-ghost" href="{{.DownloadURL}}">Download</a>{{end}}
 </main>
 <script>
   const PLAYER_DATA = {{.PlayerDataJSON}};

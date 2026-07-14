@@ -47,6 +47,15 @@ form { display: flex; flex-direction: column; gap: 0.75rem; }
 form.inline { display: inline; }
 
 label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.checkbox-label { flex-direction: row; align-items: center; gap: 0.5rem; }
+
+input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+}
 
 input {
   font-size: 1rem;

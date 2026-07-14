@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS tracks (
   slug         TEXT PRIMARY KEY,
   object_key   TEXT NOT NULL UNIQUE,
@@ -11,3 +12,6 @@ CREATE TABLE IF NOT EXISTS tracks (
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ready_at     DATETIME
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS tracks;

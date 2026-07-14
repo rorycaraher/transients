@@ -62,13 +62,20 @@ files" — this matters for the deploy workflow's path filter (see below).
 `server.go:Mux()`. The exact-path root pattern is `GET /{$}`, not `GET /` —
 plain `/` is a subtree pattern and conflicts with `/static/`.
 
-**DB**: `internal/db/schema.sql` is applied via `CREATE TABLE IF NOT
-EXISTS` on every `Open()` — no migration framework. The `tracks` table still
-has `peaks_json`/`duration_seconds` columns left over from a removed
-waveform-analysis feature; they're intentionally unreferenced by Go code
-rather than migrated away (there is no ffmpeg/waveform dependency in this
-codebase — if you see references to wavesurfer.js or ffmpeg in git history,
-that's been fully removed).
+**DB**: schema changes go through goose migrations in
+`internal/db/migrations/*.sql`, embedded via `go:embed` and applied
+automatically by `db.Open()` on every process start — there is no separate
+`goose` CLI step and none is needed on the VPS, consistent with the
+single-binary deploy model. `provider.Close()` must never be called on the
+goose `Provider` built in `db.migrate()`: it closes the underlying
+`*sql.DB`, which here is the app's long-lived connection, not something
+scoped to migrations alone. `00001_baseline.sql` is the pre-goose
+`CREATE TABLE IF NOT EXISTS` schema (safe no-op against the already-existing
+prod table); later migrations add/drop columns from there — e.g.
+`peaks_json`/`duration_seconds` (leftover from a removed waveform-analysis
+feature; there is no ffmpeg/waveform dependency in this codebase, if you see
+references to wavesurfer.js or ffmpeg in git history that's been fully
+removed) were dropped via migration `00003`.
 
 ## Deployment
 

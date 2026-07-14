@@ -5,6 +5,8 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/rorycaraher/transients/internal/store"
 )
@@ -56,8 +58,32 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.render(w, "share.html", map[string]any{
+	templateData := map[string]any{
 		"Track":          track,
 		"PlayerDataJSON": template.JS(dataJSON),
-	})
+	}
+
+	if track.Downloadable {
+		downloadURL, err := s.r2.PresignGetAttachment(r.Context(), track.ObjectKey, s.cfg.PresignedGetTTL, downloadFilename(track))
+		if err != nil {
+			s.log.Error("presign get attachment failed", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		templateData["DownloadURL"] = downloadURL
+	}
+
+	s.render(w, "share.html", templateData)
+}
+
+// downloadFilename derives the filename a downloaded track should be saved
+// as: the track's title, plus the object key's extension if the title
+// doesn't already end with it (rclone-discovered tracks have the extension
+// baked into the title already, since it's just the R2 object's filename).
+func downloadFilename(track *store.Track) string {
+	ext := path.Ext(track.ObjectKey)
+	if ext == "" || strings.HasSuffix(strings.ToLower(track.Title), strings.ToLower(ext)) {
+		return track.Title
+	}
+	return track.Title + ext
 }

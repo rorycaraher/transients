@@ -22,6 +22,7 @@ type uploadRequestBody struct {
 	Filename      string `json:"filename"`
 	ContentType   string `json:"content_type"`
 	ExpiresInDays *int   `json:"expires_in_days"`
+	Downloadable  bool   `json:"downloadable"`
 }
 
 type uploadRequestResponse struct {
@@ -53,7 +54,7 @@ func (s *Server) handleUploadRequest(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 
-	if err := s.store.CreatePending(slug, objectKey, title, expiresAt); err != nil {
+	if err := s.store.CreatePending(slug, objectKey, title, expiresAt, body.Downloadable); err != nil {
 		s.log.Error("create pending track failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
