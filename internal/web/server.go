@@ -41,6 +41,8 @@ func (s *Server) Mux() http.Handler {
 	mux.HandleFunc("POST /logout", s.handleLogout)
 
 	mux.HandleFunc("GET /t/{slug}", s.handleShare)
+	mux.HandleFunc("GET /t/{slug}/embed", s.handleShareEmbed)
+	mux.HandleFunc("GET /t/{slug}/oembed.json", s.handleOEmbed)
 
 	mux.Handle("GET /admin", s.requireAuth(s.handleAdminDashboard))
 	mux.Handle("GET /admin/upload", s.requireAuth(s.handleUploadForm))
