@@ -171,6 +171,75 @@ func TestPublicShareRouteNoAuthRequired(t *testing.T) {
 	}
 }
 
+func TestShareEmbedAndOEmbed(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	if err := srv.store.CreateFromDiscovery("embed-test", "embed-test.mp3", "Embed Test Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := srv.store.MarkReady("embed-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+
+	shareReq := httptest.NewRequest(http.MethodGet, "/t/embed-test", nil)
+	shareW := httptest.NewRecorder()
+	mux.ServeHTTP(shareW, shareReq)
+	if shareW.Code != http.StatusOK {
+		t.Fatalf("expected 200 for share page, got %d: %s", shareW.Code, shareW.Body.String())
+	}
+	shareBody := shareW.Body.String()
+	for _, want := range []string{`property="og:title" content="Embed Test Track"`, `name="twitter:card" content="player"`, `type="application/json+oembed"`} {
+		if !strings.Contains(shareBody, want) {
+			t.Fatalf("expected share page to contain %q, got %s", want, shareBody)
+		}
+	}
+
+	embedReq := httptest.NewRequest(http.MethodGet, "/t/embed-test/embed", nil)
+	embedW := httptest.NewRecorder()
+	mux.ServeHTTP(embedW, embedReq)
+	if embedW.Code != http.StatusOK {
+		t.Fatalf("expected 200 for embed page, got %d: %s", embedW.Code, embedW.Body.String())
+	}
+	embedBody := embedW.Body.String()
+	if strings.Contains(embedBody, "chrome-header") || strings.Contains(embedBody, "chrome-footer") {
+		t.Fatalf("expected bare embed page with no site chrome, got %s", embedBody)
+	}
+	if !strings.Contains(embedBody, `id="play-btn"`) {
+		t.Fatalf("expected embed page to contain the player markup, got %s", embedBody)
+	}
+
+	oembedReq := httptest.NewRequest(http.MethodGet, "/t/embed-test/oembed.json", nil)
+	oembedW := httptest.NewRecorder()
+	mux.ServeHTTP(oembedW, oembedReq)
+	if oembedW.Code != http.StatusOK {
+		t.Fatalf("expected 200 for oembed.json, got %d: %s", oembedW.Code, oembedW.Body.String())
+	}
+	if ct := oembedW.Header().Get("Content-Type"); ct != "application/json" {
+		t.Fatalf("expected application/json content type, got %q", ct)
+	}
+	oembedBody := oembedW.Body.String()
+	for _, want := range []string{`"type":"rich"`, `"title":"Embed Test Track"`, `/t/embed-test/embed`} {
+		if !strings.Contains(oembedBody, want) {
+			t.Fatalf("expected oembed.json to contain %q, got %s", want, oembedBody)
+		}
+	}
+}
+
+func TestShareEmbedAndOEmbedUnknownSlug404(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	for _, path := range []string{"/t/does-not-exist/embed", "/t/does-not-exist/oembed.json"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for %s, got %d", path, w.Code)
+		}
+	}
+}
+
 func TestUnmatchedRouteRendersNotFoundPage(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()

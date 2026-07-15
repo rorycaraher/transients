@@ -55,13 +55,28 @@ var pageNames = []string{
 	"not_found.html",
 }
 
+var templateFuncs = template.FuncMap{
+	"static": staticURL,
+	"add1":   func(i int) int { return i + 1 },
+}
+
+// barePageNames render standalone, without layout.html's header/footer
+// chrome — used for pages meant to be embedded in a third-party iframe.
+var barePageNames = []string{
+	"share_embed.html",
+}
+
 func loadTemplates() (map[string]*template.Template, error) {
-	out := make(map[string]*template.Template, len(pageNames))
+	out := make(map[string]*template.Template, len(pageNames)+len(barePageNames))
 	for _, name := range pageNames {
-		t, err := template.New(name).Funcs(template.FuncMap{
-			"static": staticURL,
-			"add1":   func(i int) int { return i + 1 },
-		}).ParseFS(templateFS, "templates/layout.html", "templates/"+name)
+		t, err := template.New(name).Funcs(templateFuncs).ParseFS(templateFS, "templates/layout.html", "templates/player_partial.html", "templates/"+name)
+		if err != nil {
+			return nil, fmt.Errorf("parse template %s: %w", name, err)
+		}
+		out[name] = t
+	}
+	for _, name := range barePageNames {
+		t, err := template.New(name).Funcs(templateFuncs).ParseFS(templateFS, "templates/player_partial.html", "templates/"+name)
 		if err != nil {
 			return nil, fmt.Errorf("parse template %s: %w", name, err)
 		}
@@ -83,6 +98,21 @@ func (s *Server) renderStatus(w http.ResponseWriter, page string, status int, da
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := t.ExecuteTemplate(w, "layout", data); err != nil {
+		s.log.Error("template render failed", "page", page, "err", err)
+	}
+}
+
+// renderBare renders a page from barePageNames: standalone, without
+// layout.html's chrome, for pages meant to be embedded in a third-party
+// iframe.
+func (s *Server) renderBare(w http.ResponseWriter, page string, data any) {
+	t, ok := s.tmpl[page]
+	if !ok {
+		http.Error(w, "template not found", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, page, data); err != nil {
 		s.log.Error("template render failed", "page", page, "err", err)
 	}
 }

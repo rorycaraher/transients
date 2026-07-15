@@ -1,13 +1,12 @@
 # transients
 
 A self-hosted, single-admin audio file host and player: upload an audio
-file, get a shareable link, recipients stream it in-browser with a minimal
-progress-line player.
+file, get a shareable link, recipients stream it in-browser, or optionally
+enable download per-file.
 
 ## How it works
 
-- Go backend, SQLite for metadata, server-rendered templates + minimal JS
-  (a plain `<audio>` element driving a custom seek bar) — no build
+- Go backend, SQLite for metadata, server-rendered templates + minimal JS — no build
   pipeline, one binary.
 - Audio lives in a private Cloudflare R2 bucket. Files arrive two ways: the
   browser uploads directly to R2 via a presigned PUT, or you `rclone` files
@@ -63,9 +62,7 @@ systemd doesn't).
 
 ## Deploying
 
-The app is a single static binary — `modernc.org/sqlite` is a pure-Go
-SQLite driver, so cross-compiling needs no C toolchain and no Go on the
-VPS:
+The app is a single static binary.
 
 ```sh
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server

@@ -1,26 +1,25 @@
 {{define "title"}}NLTL - {{.Track.Title}}{{end}}
+{{define "meta"}}
+<meta property="og:type" content="music.song">
+<meta property="og:title" content="{{.Track.Title}}">
+<meta property="og:description" content="Listen on NLTL">
+<meta property="og:url" content="{{.ShareURL}}">
+<meta property="og:image" content="{{.OGImageURL}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="player">
+<meta name="twitter:title" content="{{.Track.Title}}">
+<meta name="twitter:image" content="{{.OGImageURL}}">
+<meta name="twitter:player" content="{{.EmbedURL}}">
+<meta name="twitter:player:width" content="480">
+<meta name="twitter:player:height" content="180">
+<link rel="alternate" type="application/json+oembed" href="{{.OEmbedURL}}" title="{{.Track.Title}}">
+{{end}}
 {{define "content"}}
 <main class="narrow">
   <div class="eyebrow">Track</div>
   <h1>{{.Track.Title}}</h1>
-  <audio id="audio" preload="metadata"></audio>
-  <div class="player-box">
-    <div class="player-controls">
-      <button id="play-btn" class="play-btn" type="button" aria-label="Play">
-        <svg class="icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-        <svg class="icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
-      </button>
-      <div class="seek-col">
-        <div id="seek-bar" class="seek-bar">
-          <div id="seek-fill" class="seek-fill"></div>
-        </div>
-        <div class="time-readout">
-          <span id="time-current">0:00</span>
-          <span id="time-duration">0:00</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  {{template "player" .}}
   {{if .DownloadURL}}<a class="btn-ghost btn-block" href="{{.DownloadURL}}">Download file</a>{{end}}
 </main>
 <script>

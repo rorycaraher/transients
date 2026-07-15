@@ -16,22 +16,50 @@ type playerData struct {
 	AudioURL string `json:"audioUrl"`
 }
 
-func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("slug")
-
+// lookupReadyTrack fetches the track for slug and enforces the same
+// visibility rules everywhere a share link is resolved (main share page,
+// bare embed page, oEmbed JSON): unknown or not-yet-ready tracks 404, as do
+// expired tracks reached via the embed/oEmbed routes (ok is false and the
+// response has already been written in every failure case).
+func (s *Server) lookupReadyTrack(w http.ResponseWriter, r *http.Request, slug string) (*store.Track, bool) {
 	track, err := s.store.GetBySlug(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		s.handleNotFound(w, r)
-		return
+		return nil, false
 	}
 	if err != nil {
 		s.log.Error("get track failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+		return nil, false
 	}
-
 	if track.Status != store.StatusReady {
 		s.handleNotFound(w, r)
+		return nil, false
+	}
+	return track, true
+}
+
+// playerTemplateData builds the PlayerDataJSON field shared by the share
+// page and the bare embed page: a fresh presigned GET URL minted on every
+// load, so link expiry is enforced by R2 itself.
+func (s *Server) playerTemplateData(r *http.Request, track *store.Track) (map[string]any, error) {
+	audioURL, err := s.r2.PresignGet(r.Context(), track.ObjectKey, s.cfg.PresignedGetTTL)
+	if err != nil {
+		return nil, err
+	}
+	dataJSON, err := json.Marshal(playerData{Title: track.Title, AudioURL: audioURL})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"Track":          track,
+		"PlayerDataJSON": template.JS(dataJSON),
+	}, nil
+}
+
+func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
+	track, ok := s.lookupReadyTrack(w, r, r.PathValue("slug"))
+	if !ok {
 		return
 	}
 
@@ -40,28 +68,18 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	audioURL, err := s.r2.PresignGet(r.Context(), track.ObjectKey, s.cfg.PresignedGetTTL)
+	templateData, err := s.playerTemplateData(r, track)
 	if err != nil {
 		s.log.Error("presign get failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	data := playerData{
-		Title:    track.Title,
-		AudioURL: audioURL,
-	}
-	dataJSON, err := json.Marshal(data)
-	if err != nil {
-		s.log.Error("marshal player data failed", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	templateData := map[string]any{
-		"Track":          track,
-		"PlayerDataJSON": template.JS(dataJSON),
-	}
+	shareURL := s.cfg.BaseURL + "/t/" + track.Slug
+	templateData["ShareURL"] = shareURL
+	templateData["OGImageURL"] = s.cfg.BaseURL + staticURL("og-image.png")
+	templateData["EmbedURL"] = shareURL + "/embed"
+	templateData["OEmbedURL"] = shareURL + "/oembed.json"
 
 	if track.Downloadable {
 		downloadURL, err := s.r2.PresignGetAttachment(r.Context(), track.ObjectKey, s.cfg.PresignedGetTTL, downloadFilename(track))
