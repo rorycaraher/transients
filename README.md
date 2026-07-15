@@ -37,11 +37,10 @@ and fill in that workspace's `tofu output` values.
 
 `BASE_URL=http://localhost:8080` in local dev is deliberate: browsers treat
 literal `localhost` as a secure context, so the `Secure` session cookie
-still works with zero code changes — this doesn't hold for a LAN IP or any
-other hostname. `DB_PATH=./local.db` keeps the dev database out of git and
+still works with zero code changes. `DB_PATH=./local.db` keeps the dev database out of git and
 away from production's.
 
-No hot-reload — re-run `go run ./cmd/server` after code changes, by design.
+No hot-reload — re-run `go run ./cmd/server` after code changes.
 
 ## Environment variables
 
@@ -67,8 +66,6 @@ The app is a single static binary.
 ```sh
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server
 ```
-
-(`GOARCH=arm64` for an ARM box, e.g. Hetzner's CAX line.)
 
 Ship the binary, the env file, and `deploy/transients.service` to the VPS,
 run as a dedicated `transients` system user under `/var/lib/transients`,
