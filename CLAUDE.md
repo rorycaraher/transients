@@ -40,9 +40,7 @@ Both converge on `internal/ingest.Poller`, which polls Cloudflare Queue
   `CreateFromDiscovery`, slug = random ID, title = filename.
 
 Either way, `ingestObject` does an R2 `Head()` to confirm the object exists
-and grab content-type/size, then `store.MarkReady`. There is deliberately no
-media processing step — no waveform/duration extraction happens server-side
-(this was removed; see below).
+and grab content-type/size, then `store.MarkReady`.
 
 **Share links never expose real R2 URLs at rest.** `handleShare` mints a
 fresh presigned GET URL (`r2.PresignGet`) on every page load, so link expiry
@@ -71,28 +69,14 @@ goose `Provider` built in `db.migrate()`: it closes the underlying
 `*sql.DB`, which here is the app's long-lived connection, not something
 scoped to migrations alone. `00001_baseline.sql` is the pre-goose
 `CREATE TABLE IF NOT EXISTS` schema (safe no-op against the already-existing
-prod table); later migrations add/drop columns from there — e.g.
-`peaks_json`/`duration_seconds` (leftover from a removed waveform-analysis
-feature; there is no ffmpeg/waveform dependency in this codebase, if you see
-references to wavesurfer.js or ffmpeg in git history that's been fully
-removed) were dropped via migration `00003`.
+prod table); later migrations add/drop columns from there.
 
 ## Deployment
 
-Bare binary + systemd, not Docker — `modernc.org/sqlite` is a pure-Go
+Bare binary + systemd. `modernc.org/sqlite` is a pure-Go
 driver, so `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build` cross-compiles
-with no C toolchain and no Go needed on the VPS. Caddy in front terminates
-TLS and reverse-proxies to `PORT`. Full manual steps are in README.md's
-"Deploying" section; `deploy/transients.service` is the systemd unit
-(`ProtectSystem=strict`, `PrivateTmp=true`, `ReadWritePaths=/var/lib/transients`).
-
-CI (`.github/workflows/ci.yml`) runs on every PR into `main`. CD
-(`.github/workflows/deploy.yml`) runs on push to `main`, but only if the
-diff touches `on.push.paths` — Go files, `go.mod`/`go.sum`, or anything
-under `internal/web/templates/**` / `internal/web/static/**` (per the
-go:embed note above). Doc-only commits to `main` intentionally do not
-redeploy. `deploy/transients.service` itself is **not** synced by CD — a
-change to the unit file has to be applied on the VPS by hand.
+with no C toolchain and no Go needed on the VPS. Caddy terminates
+TLS and reverse-proxies to `PORT`. `deploy/transients.service` is the systemd unit.
 
 ## Conventions
 
