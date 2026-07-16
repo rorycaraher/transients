@@ -14,6 +14,7 @@ import (
 type playerData struct {
 	Title    string `json:"title"`
 	AudioURL string `json:"audioUrl"`
+	PlayURL  string `json:"playUrl"`
 }
 
 // lookupReadyTrack fetches the track for slug and enforces the same
@@ -47,7 +48,11 @@ func (s *Server) playerTemplateData(r *http.Request, track *store.Track) (map[st
 	if err != nil {
 		return nil, err
 	}
-	dataJSON, err := json.Marshal(playerData{Title: track.Title, AudioURL: audioURL})
+	dataJSON, err := json.Marshal(playerData{
+		Title:    track.Title,
+		AudioURL: audioURL,
+		PlayURL:  "/t/" + track.Slug + "/play",
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +97,27 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.render(w, "share.html", templateData)
+}
+
+// handleTrackPlay records one play for slug, beaconed by player.js on the
+// audio element's first "play" event per page load. Public and
+// unauthenticated like the rest of the share surface, and deliberately
+// undiscriminating about who's calling it (see IncrementPlayCount).
+func (s *Server) handleTrackPlay(w http.ResponseWriter, r *http.Request) {
+	track, ok := s.lookupReadyTrack(w, r, r.PathValue("slug"))
+	if !ok {
+		return
+	}
+	if track.Expired() {
+		s.handleNotFound(w, r)
+		return
+	}
+	if err := s.store.IncrementPlayCount(track.Slug); err != nil {
+		s.log.Error("increment play count failed", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // downloadFilename derives the filename a downloaded track should be saved

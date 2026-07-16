@@ -46,6 +46,15 @@ audio.addEventListener("waiting", () => {
   console.warn("[player] waiting", mediaState());
 });
 
+// Beacon exactly once per page load: replays/scrubbing within the same
+// visit shouldn't inflate the count.
+let playRecorded = false;
+audio.addEventListener("play", () => {
+  if (playRecorded) return;
+  playRecorded = true;
+  fetch(PLAYER_DATA.playUrl, { method: "POST", keepalive: true }).catch(() => {});
+});
+
 function setPlaying(playing) {
   playBtn.classList.toggle("is-playing", playing);
   playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");

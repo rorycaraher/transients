@@ -162,7 +162,7 @@ button.danger:hover { background: #f76464; border-color: #f76464; box-shadow: 0 
 
 .grid-header, .grid-row {
   display: grid;
-  grid-template-columns: 48px 1fr 90px 100px 100px 120px;
+  grid-template-columns: 48px 1fr 90px 70px 100px 100px 120px;
   align-items: center;
   gap: 0.75rem;
 }
