@@ -226,6 +226,48 @@ func TestShareEmbedAndOEmbed(t *testing.T) {
 	}
 }
 
+func TestTrackPlayIncrementsCount(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	if err := srv.store.CreateFromDiscovery("play-test", "play-test.mp3", "Play Test Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := srv.store.MarkReady("play-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/t/play-test/play", nil)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		if w.Code != http.StatusNoContent {
+			t.Fatalf("expected 204, got %d: %s", w.Code, w.Body.String())
+		}
+	}
+
+	track, err := srv.store.GetBySlug("play-test")
+	if err != nil {
+		t.Fatalf("GetBySlug: %v", err)
+	}
+	if track.PlayCount != 2 {
+		t.Fatalf("expected play_count 2, got %d", track.PlayCount)
+	}
+}
+
+func TestTrackPlayUnknownSlug404(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	req := httptest.NewRequest(http.MethodPost, "/t/does-not-exist/play", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unknown slug, got %d", w.Code)
+	}
+}
+
 func TestShareEmbedAndOEmbedUnknownSlug404(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()

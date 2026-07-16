@@ -27,6 +27,7 @@ type Track struct {
 	ExpiresAt    sql.NullTime
 	CreatedAt    time.Time
 	ReadyAt      sql.NullTime
+	PlayCount    int64
 }
 
 func (t *Track) Expired() bool {
@@ -64,13 +65,13 @@ func (s *Store) CreateFromDiscovery(slug, objectKey, title string) error {
 
 func (s *Store) GetByObjectKey(objectKey string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
 		 FROM tracks WHERE object_key = ?`, objectKey))
 }
 
 func (s *Store) GetBySlug(slug string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
 		 FROM tracks WHERE slug = ?`, slug))
 }
 
@@ -106,6 +107,25 @@ func (s *Store) UpdateTrack(slug, title string, expiresAt *time.Time, downloadab
 	return nil
 }
 
+// IncrementPlayCount records one play for slug. Called from the public,
+// unauthenticated share/embed player beacon, so it deliberately does nothing
+// fancier than an atomic increment: no rate limiting or dedup beyond what
+// the client already does (one beacon per page load).
+func (s *Store) IncrementPlayCount(slug string) error {
+	res, err := s.db.Exec(`UPDATE tracks SET play_count = play_count + 1 WHERE slug = ?`, slug)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (s *Store) Delete(slug string) error {
 	res, err := s.db.Exec(`DELETE FROM tracks WHERE slug = ?`, slug)
 	if err != nil {
@@ -123,7 +143,7 @@ func (s *Store) Delete(slug string) error {
 
 func (s *Store) ListAll() ([]*Track, error) {
 	rows, err := s.db.Query(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
 		 FROM tracks ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -164,7 +184,7 @@ func (s *Store) scan(row rowScanner) (*Track, error) {
 	var t Track
 	err := row.Scan(
 		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
-		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt,
+		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount,
 	)
 	if err != nil {
 		return nil, err

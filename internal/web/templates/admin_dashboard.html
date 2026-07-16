@@ -17,6 +17,7 @@
     <div>#</div>
     <div>Title</div>
     <div>Status</div>
+    <div>Plays</div>
     <div>Expires</div>
     <div>Added</div>
     <div></div>
@@ -28,6 +29,7 @@
       {{if eq $t.Status "ready"}}<a href="/t/{{$t.Slug}}">{{$t.Title}}</a>{{else}}{{$t.Title}}{{end}}
     </div>
     <div class="status status-{{$t.Status}}">{{$t.Status}}</div>
+    <div class="meta">{{$t.PlayCount}}</div>
     <div class="meta">{{if $t.ExpiresAt.Valid}}{{$t.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</div>
     <div class="meta">{{$t.CreatedAt.Format "2006-01-02"}}</div>
     <div class="row-actions">
