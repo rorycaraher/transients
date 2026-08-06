@@ -91,3 +91,42 @@ seekBar.addEventListener("pointerup", () => {
 seekBar.addEventListener("pointercancel", () => {
   dragging = false;
 });
+
+const SKIP_SECONDS = 10;
+
+function isEditableTarget(target) {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT";
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (isEditableTarget(e.target)) return;
+
+  switch (e.key.toLowerCase()) {
+    case "k":
+    case " ":
+      e.preventDefault();
+      if (audio.paused) audio.play();
+      else audio.pause();
+      break;
+    case "j":
+      if (!audio.duration) break;
+      audio.currentTime = Math.max(0, audio.currentTime - SKIP_SECONDS);
+      updateProgress();
+      break;
+    case "l":
+      if (!audio.duration) break;
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + SKIP_SECONDS);
+      updateProgress();
+      break;
+    default:
+      if (e.key >= "0" && e.key <= "9") {
+        if (!audio.duration) break;
+        audio.currentTime = (Number(e.key) / 10) * audio.duration;
+        updateProgress();
+      }
+      break;
+  }
+});
