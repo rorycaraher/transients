@@ -14,7 +14,10 @@
     <a class="wordmark" href="/">NLTL</a>
   </header>
   {{block "content" .}}{{end}}
-  <footer class="chrome-footer">Private links &#8212; Not indexed &#8212; Share with care</footer>
+  <footer class="chrome-footer">
+    <span>Private links &#8212; Not indexed &#8212; Share with care</span>
+    {{block "footer-extra" .}}{{end}}
+  </footer>
 </body>
 </html>
 {{end}}

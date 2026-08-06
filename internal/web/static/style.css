@@ -365,6 +365,10 @@ progress::-webkit-progress-value { background: var(--accent); }
   text-decoration: none;
 }
 .chrome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1.25rem 2rem;
   border-top: 1px solid var(--border);
   font-family: var(--font-mono);
@@ -372,3 +376,34 @@ progress::-webkit-progress-value { background: var(--accent); }
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+.shortcuts-hint {
+  position: relative;
+  border-bottom: 1px dotted var(--muted);
+  cursor: default;
+}
+.shortcuts-panel {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 0.6rem);
+  right: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--fg);
+  white-space: nowrap;
+  text-align: left;
+  letter-spacing: normal;
+}
+.shortcuts-panel div + div { margin-top: 0.35rem; }
+.shortcuts-panel kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised-2);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  text-align: center;
+}
+.shortcuts-hint:hover .shortcuts-panel,
+.shortcuts-hint:focus .shortcuts-panel { display: block; }
