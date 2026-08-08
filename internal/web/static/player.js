@@ -79,6 +79,7 @@ function seekFromEvent(e) {
 let dragging = false;
 seekBar.addEventListener("pointerdown", (e) => {
   dragging = true;
+  seekBar.classList.add("is-dragging");
   seekBar.setPointerCapture(e.pointerId);
   seekFromEvent(e);
 });
@@ -87,9 +88,11 @@ seekBar.addEventListener("pointermove", (e) => {
 });
 seekBar.addEventListener("pointerup", () => {
   dragging = false;
+  seekBar.classList.remove("is-dragging");
 });
 seekBar.addEventListener("pointercancel", () => {
   dragging = false;
+  seekBar.classList.remove("is-dragging");
 });
 
 const SKIP_SECONDS = 10;

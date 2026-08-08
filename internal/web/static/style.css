@@ -295,6 +295,22 @@ button.danger:hover { background: #f76464; border-color: #f76464; box-shadow: 0 
   height: 2px;
   background: var(--border-strong);
   cursor: pointer;
+  transform-origin: bottom;
+  transition: transform 120ms ease;
+}
+.seek-bar::before {
+  /* Invisible hit-zone: the visible line is 2px, too thin to target
+     reliably, so hover/click respond across a taller band around it. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -9px;
+  bottom: -9px;
+}
+.seek-bar:hover,
+.seek-bar.is-dragging {
+  transform: scaleY(3);
 }
 .seek-fill {
   position: absolute;
