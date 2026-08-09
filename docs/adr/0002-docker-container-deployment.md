@@ -33,6 +33,9 @@ Cloudflare account and credentials, same as this deployment does.
 - `deploy/transients.service` is deleted. Docker's `restart: unless-stopped`
   fully replaces it as supervisor — running both would just be two
   disagreeing sources of truth for "is it up."
-- CI still builds the image in GitHub Actions (no on-VPS build step) and
-  ships it via `docker save` + `scp` + `docker load`, mirroring the old
-  build-in-CI/ship-artifact shape rather than introducing a registry.
+- **The VPS builds its own image.** `~/transients` on the VPS is a clone
+  of this repo; `deploy.yml` SSHes in, `git fetch`/`reset --hard`s to
+  `origin/main`, and runs `docker compose up -d --build`. No image is
+  built in CI or transferred — consistent with "no registry," and it
+  mirrors how another app already deploys on this VPS (pull-and-build in
+  place), so there's one deploy pattern on the box instead of two.

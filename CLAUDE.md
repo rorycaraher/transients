@@ -83,12 +83,13 @@ read-only rootfs; the SQLite file is the one exception, bind-mounted from
 `65532:65532` or the container can't write its DB file. `cmd/healthcheck`
 is a tiny static Go binary that GETs `/healthz` — it exists only because
 `scratch` has no `curl`/`wget` for the Dockerfile's `HEALTHCHECK` to exec.
-No registry: `.github/workflows/deploy.yml` builds the image in CI,
-`docker save`s it to a tarball, ships it over `scp`, and `docker load`s +
-`docker compose up -d`s it on the VPS — `docker-compose.yml` and `.env`
-live in `~/transients` there (the deploy user's home dir, not `/opt`, so
-setup needs no `sudo` beyond the one-time chown on the bind-mounted DB
-directory). Caddy is untouched by any of this: it
+No registry, and no image transfer either: `~/transients` on the VPS is a
+clone of this repo, and `.github/workflows/deploy.yml` SSHes in, resets it
+to `origin/main`, and runs `docker compose up -d --build` there — the VPS
+builds its own image, same as another app already deployed on that box.
+`.env` also lives in `~/transients` (the deploy user's home dir, not
+`/opt`, so setup needs no `sudo` beyond the one-time chown on the
+bind-mounted DB directory). Caddy is untouched by any of this: it
 still runs directly on the host and reverse-proxies to `PORT`, since it
 also fronts other sites on the same VPS.
 

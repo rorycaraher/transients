@@ -18,14 +18,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Build image
-        run: docker build -t transients:local .
-
-      - name: Save image to tarball
-        run: docker save transients:local | gzip > transients.tar.gz
-
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -36,19 +28,17 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-      - name: Ship image and redeploy
+      - name: Pull and rebuild on VPS
         env:
           SSH_HOST: ${{ secrets.VPS_HOST }}
           SSH_USER: ${{ secrets.VPS_USER }}
         run: |
-          scp -i ~/.ssh/deploy_key transients.tar.gz "$SSH_USER@$SSH_HOST:/tmp/transients.tar.gz"
-          scp -i ~/.ssh/deploy_key docker-compose.yml "$SSH_USER@$SSH_HOST:~/transients/docker-compose.yml"
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" '
             set -e
-            gunzip -c /tmp/transients.tar.gz | docker load
-            rm /tmp/transients.tar.gz
             cd ~/transients
-            docker compose up -d
+            git fetch origin
+            git reset --hard origin/main
+            docker compose up -d --build
             cid=$(docker compose ps -q transients)
             for i in $(seq 1 15); do
               status=$(docker inspect -f "{{.State.Health.Status}}" "$cid")
