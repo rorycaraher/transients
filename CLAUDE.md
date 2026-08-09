@@ -86,7 +86,9 @@ is a tiny static Go binary that GETs `/healthz` — it exists only because
 No registry: `.github/workflows/deploy.yml` builds the image in CI,
 `docker save`s it to a tarball, ships it over `scp`, and `docker load`s +
 `docker compose up -d`s it on the VPS — `docker-compose.yml` and `.env`
-live in `/opt/transients` there. Caddy is untouched by any of this: it
+live in `~/transients` there (the deploy user's home dir, not `/opt`, so
+setup needs no `sudo` beyond the one-time chown on the bind-mounted DB
+directory). Caddy is untouched by any of this: it
 still runs directly on the host and reverse-proxies to `PORT`, since it
 also fronts other sites on the same VPS.
 

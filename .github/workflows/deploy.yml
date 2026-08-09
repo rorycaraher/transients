@@ -42,12 +42,12 @@ jobs:
           SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           scp -i ~/.ssh/deploy_key transients.tar.gz "$SSH_USER@$SSH_HOST:/tmp/transients.tar.gz"
-          scp -i ~/.ssh/deploy_key docker-compose.yml "$SSH_USER@$SSH_HOST:/opt/transients/docker-compose.yml"
+          scp -i ~/.ssh/deploy_key docker-compose.yml "$SSH_USER@$SSH_HOST:~/transients/docker-compose.yml"
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" '
             set -e
             gunzip -c /tmp/transients.tar.gz | docker load
             rm /tmp/transients.tar.gz
-            cd /opt/transients
+            cd ~/transients
             docker compose up -d
             cid=$(docker compose ps -q transients)
             for i in $(seq 1 15); do

@@ -70,12 +70,13 @@ tarball rather than pulled.
 One-time setup on the VPS:
 
 ```sh
-sudo mkdir -p /var/lib/transients /opt/transients
+mkdir -p ~/transients
+sudo mkdir -p /var/lib/transients
 sudo chown 65532:65532 /var/lib/transients   # matches the container's non-root UID
 ```
 
 Copy `docker-compose.yml` and your filled-in `.env` (see `.env.example`)
-to `/opt/transients/`. Caddy is unaffected by any of this — it still runs
+to `~/transients/`. Caddy is unaffected by any of this — it still runs
 directly on the host and reverse-proxies to `PORT`, since it also fronts
 other sites on the box — see `Caddyfile.snippet`.
 
@@ -92,8 +93,8 @@ To do the same by hand:
 ```sh
 docker build -t transients:local .
 docker save transients:local | gzip > transients.tar.gz
-scp transients.tar.gz docker-compose.yml you@vps:/opt/transients/
-ssh you@vps 'cd /opt/transients && gunzip -c transients.tar.gz | docker load && docker compose up -d'
+scp transients.tar.gz docker-compose.yml you@vps:~/transients/
+ssh you@vps 'cd ~/transients && gunzip -c transients.tar.gz | docker load && docker compose up -d'
 ```
 
 ### Verify
