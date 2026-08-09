@@ -282,6 +282,19 @@ func TestShareEmbedAndOEmbedUnknownSlug404(t *testing.T) {
 	}
 }
 
+func TestHealthzOK(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /healthz, got %d", w.Code)
+	}
+}
+
 func TestUnmatchedRouteRendersNotFoundPage(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()

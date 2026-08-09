@@ -73,10 +73,24 @@ prod table); later migrations add/drop columns from there.
 
 ## Deployment
 
-Bare binary + systemd. `modernc.org/sqlite` is a pure-Go
-driver, so `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build` cross-compiles
-with no C toolchain and no Go needed on the VPS. Caddy terminates
-TLS and reverse-proxies to `PORT`. `deploy/transients.service` is the systemd unit.
+Docker Compose on the VPS — see `docs/adr/0002-docker-container-deployment.md`
+for why (portability; the prior bare-binary/systemd model wasn't broken).
+The final image is `FROM scratch`: `modernc.org/sqlite` is a pure-Go driver,
+so `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build` needs no libc, and the
+image needs no shell. The container runs as non-root (`65532:65532`) with a
+read-only rootfs; the SQLite file is the one exception, bind-mounted from
+`/var/lib/transients` on the host, which must be pre-`chown`ed to
+`65532:65532` or the container can't write its DB file. `cmd/healthcheck`
+is a tiny static Go binary that GETs `/healthz` — it exists only because
+`scratch` has no `curl`/`wget` for the Dockerfile's `HEALTHCHECK` to exec.
+No registry: `.github/workflows/deploy.yml` builds the image in CI,
+`docker save`s it to a tarball, ships it over `scp`, and `docker load`s +
+`docker compose up -d`s it on the VPS — `docker-compose.yml` and `.env`
+live in `~/transients` there (the deploy user's home dir, not `/opt`, so
+setup needs no `sudo` beyond the one-time chown on the bind-mounted DB
+directory). Caddy is untouched by any of this: it
+still runs directly on the host and reverse-proxies to `PORT`, since it
+also fronts other sites on the same VPS.
 
 ## Conventions
 

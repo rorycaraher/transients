@@ -54,30 +54,52 @@ No hot-reload — re-run `go run ./cmd/server` after code changes.
 | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | from `tofu output` in `infra/opentofu` |
 | `CF_API_TOKEN`, `CF_QUEUE_ID` | from `tofu output` in `infra/opentofu` |
 
-See `.env.example` (prod, loaded via systemd's `EnvironmentFile=`) and
+See `.env.example` (prod, loaded via Docker Compose's `env_file:`) and
 `.env.local.example` (local dev, loaded via `source` — note the comment
 there about single-quoting the bcrypt hash, since bash expands `$` and
 systemd doesn't).
 
 ## Deploying
 
-The app is a single static binary.
+The app runs as a Docker container — see
+`docs/adr/0002-docker-container-deployment.md` for why (portability; the
+prior bare-binary/systemd setup wasn't broken, this isn't a fix). There's
+no image registry yet, so the image is built in CI and shipped as a
+tarball rather than pulled.
+
+One-time setup on the VPS:
 
 ```sh
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server
+mkdir -p ~/transients
+sudo mkdir -p /var/lib/transients
+sudo chown 65532:65532 /var/lib/transients   # matches the container's non-root UID
 ```
 
-Ship the binary, the env file, and `deploy/transients.service` to the VPS,
-run as a dedicated `transients` system user under `/var/lib/transients`,
-and `systemctl enable --now transients`. Caddy terminates TLS and
-reverse-proxies to `PORT` — see `Caddyfile.snippet`. Redeploys are just:
-rebuild, `scp` over `/usr/local/bin/transients`, `systemctl restart
-transients`. `.github/workflows/deploy.yml` automates this on push to
-`main` (only when a change actually touches the compiled binary — Go
-files, templates, or static assets, since those are embedded).
+Copy `docker-compose.yml` and your filled-in `.env` (see `.env.example`)
+to `~/transients/`. Caddy is unaffected by any of this — it still runs
+directly on the host and reverse-proxies to `PORT`, since it also fronts
+other sites on the box — see `Caddyfile.snippet`.
+
+`.github/workflows/deploy.yml` automates redeploys on push to `main` (only
+when a change actually touches the compiled binary, the Dockerfile, or
+`docker-compose.yml` — Go files, templates, and static assets count too,
+since those are embedded). It builds the image, `docker save`s it to a
+tarball, `scp`s the tarball and `docker-compose.yml` to the VPS, then
+`docker load`s and `docker compose up -d`s it there, polling the
+container's own `HEALTHCHECK` status before declaring success.
+
+To do the same by hand:
+
+```sh
+docker build -t transients:local .
+docker save transients:local | gzip > transients.tar.gz
+scp transients.tar.gz docker-compose.yml you@vps:~/transients/
+ssh you@vps 'cd ~/transients && gunzip -c transients.tar.gz | docker load && docker compose up -d'
+```
 
 ### Verify
 
+- `curl https://your-domain/healthz` returns `200`.
 - `/login` with the password you hashed.
 - Upload a file from the dashboard; it should flip pending → ready within
   ~10-15s.
