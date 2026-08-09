@@ -61,40 +61,36 @@ systemd doesn't).
 
 ## Deploying
 
-The app runs as a Docker container — see
-`docs/adr/0002-docker-container-deployment.md` for why (portability; the
-prior bare-binary/systemd setup wasn't broken, this isn't a fix). There's
-no image registry yet, so the image is built in CI and shipped as a
-tarball rather than pulled.
+The app runs as a Docker container, built directly on the VPS from a git
+clone of this repo — see `docs/adr/0002-docker-container-deployment.md`
+for why (portability; the prior bare-binary/systemd setup wasn't broken,
+this isn't a fix). There's no image registry, and no image transfer either.
 
 One-time setup on the VPS:
 
 ```sh
-mkdir -p ~/transients
+git clone <this repo's URL> ~/transients
 sudo mkdir -p /var/lib/transients
 sudo chown 65532:65532 /var/lib/transients   # matches the container's non-root UID
 ```
 
-Copy `docker-compose.yml` and your filled-in `.env` (see `.env.example`)
-to `~/transients/`. Caddy is unaffected by any of this — it still runs
-directly on the host and reverse-proxies to `PORT`, since it also fronts
-other sites on the box — see `Caddyfile.snippet`.
+Add your filled-in `.env` (see `.env.example`) to `~/transients/` — it's
+gitignored, so it survives redeploys untouched. Caddy is unaffected by any
+of this — it still runs directly on the host and reverse-proxies to
+`PORT`, since it also fronts other sites on the box — see
+`Caddyfile.snippet`.
 
 `.github/workflows/deploy.yml` automates redeploys on push to `main` (only
 when a change actually touches the compiled binary, the Dockerfile, or
 `docker-compose.yml` — Go files, templates, and static assets count too,
-since those are embedded). It builds the image, `docker save`s it to a
-tarball, `scp`s the tarball and `docker-compose.yml` to the VPS, then
-`docker load`s and `docker compose up -d`s it there, polling the
+since those are embedded). It SSHes into the VPS, resets `~/transients` to
+`origin/main`, and runs `docker compose up -d --build` there, polling the
 container's own `HEALTHCHECK` status before declaring success.
 
 To do the same by hand:
 
 ```sh
-docker build -t transients:local .
-docker save transients:local | gzip > transients.tar.gz
-scp transients.tar.gz docker-compose.yml you@vps:~/transients/
-ssh you@vps 'cd ~/transients && gunzip -c transients.tar.gz | docker load && docker compose up -d'
+ssh you@vps 'cd ~/transients && git fetch origin && git reset --hard origin/main && docker compose up -d --build'
 ```
 
 ### Verify
