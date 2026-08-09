@@ -1,0 +1,13 @@
+.git
+.github
+.env*
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+transients
+infra
+deploy
+docs
+README.md
+CLAUDE.md

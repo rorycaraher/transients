@@ -9,6 +9,9 @@ on:
       - 'go.sum'
       - 'internal/web/templates/**'
       - 'internal/web/static/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
       - '.github/workflows/deploy.yml'
 
 jobs:
@@ -17,12 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      - name: Build image
+        run: docker build -t transients:local .
 
-      - name: Build linux/amd64 binary
-        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o transients ./cmd/server
+      - name: Save image to tarball
+        run: docker save transients:local | gzip > transients.tar.gz
 
       - name: Configure SSH
         env:
@@ -34,17 +36,28 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-      - name: Ship binary and restart service
+      - name: Ship image and redeploy
         env:
           SSH_HOST: ${{ secrets.VPS_HOST }}
           SSH_USER: ${{ secrets.VPS_USER }}
         run: |
-          scp -i ~/.ssh/deploy_key transients "$SSH_USER@$SSH_HOST:/tmp/transients"
+          scp -i ~/.ssh/deploy_key transients.tar.gz "$SSH_USER@$SSH_HOST:/tmp/transients.tar.gz"
+          scp -i ~/.ssh/deploy_key docker-compose.yml "$SSH_USER@$SSH_HOST:/opt/transients/docker-compose.yml"
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" '
             set -e
-            sudo mv /tmp/transients /usr/local/bin/transients
-            sudo chmod +x /usr/local/bin/transients
-            sudo systemctl restart transients
-            sleep 2
-            sudo systemctl is-active --quiet transients
+            gunzip -c /tmp/transients.tar.gz | docker load
+            rm /tmp/transients.tar.gz
+            cd /opt/transients
+            docker compose up -d
+            cid=$(docker compose ps -q transients)
+            for i in $(seq 1 15); do
+              status=$(docker inspect -f "{{.State.Health.Status}}" "$cid")
+              if [ "$status" = "healthy" ]; then
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "container did not become healthy" >&2
+            docker compose logs --tail 50 transients
+            exit 1
           '

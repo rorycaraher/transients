@@ -1,0 +1,12 @@
+services:
+  transients:
+    build: .
+    image: transients:local
+    restart: unless-stopped
+    read_only: true
+    ports:
+      - "127.0.0.1:${PORT:-8090}:${PORT:-8090}"
+    env_file:
+      - .env
+    volumes:
+      - /var/lib/transients:/var/lib/transients

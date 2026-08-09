@@ -16,3 +16,6 @@ jobs:
 
       - name: Verify
         run: go build ./... && go vet ./... && go test ./...
+
+      - name: Verify Docker image builds
+        run: docker build .
