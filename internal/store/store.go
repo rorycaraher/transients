@@ -28,6 +28,7 @@ type Track struct {
 	CreatedAt    time.Time
 	ReadyAt      sql.NullTime
 	PlayCount    int64
+	Notes        string
 }
 
 func (t *Track) Expired() bool {
@@ -65,13 +66,13 @@ func (s *Store) CreateFromDiscovery(slug, objectKey, title string) error {
 
 func (s *Store) GetByObjectKey(objectKey string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
 		 FROM tracks WHERE object_key = ?`, objectKey))
 }
 
 func (s *Store) GetBySlug(slug string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
 		 FROM tracks WHERE slug = ?`, slug))
 }
 
@@ -89,10 +90,31 @@ func (s *Store) MarkFailed(slug string) error {
 	return err
 }
 
-func (s *Store) UpdateTrack(slug, title string, expiresAt *time.Time, downloadable bool) error {
+func (s *Store) UpdateTrack(slug, title string, expiresAt *time.Time, downloadable bool, notes string) error {
 	res, err := s.db.Exec(
-		`UPDATE tracks SET title = ?, expires_at = ?, downloadable = ? WHERE slug = ?`,
-		title, nullTime(expiresAt), downloadable, slug,
+		`UPDATE tracks SET title = ?, expires_at = ?, downloadable = ?, notes = ? WHERE slug = ?`,
+		title, nullTime(expiresAt), downloadable, notes, slug,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// BeginReplace points slug at a new object key and flips it back to
+// pending, so ingestObject's GetByObjectKey lookup routes the replacement
+// upload to this existing row instead of minting a new track.
+func (s *Store) BeginReplace(slug, newObjectKey string) error {
+	res, err := s.db.Exec(
+		`UPDATE tracks SET object_key = ?, status = ? WHERE slug = ?`,
+		newObjectKey, StatusPending, slug,
 	)
 	if err != nil {
 		return err
@@ -143,7 +165,7 @@ func (s *Store) Delete(slug string) error {
 
 func (s *Store) ListAll() ([]*Track, error) {
 	rows, err := s.db.Query(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
 		 FROM tracks ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -184,7 +206,7 @@ func (s *Store) scan(row rowScanner) (*Track, error) {
 	var t Track
 	err := row.Scan(
 		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
-		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount,
+		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount, &t.Notes,
 	)
 	if err != nil {
 		return nil, err
