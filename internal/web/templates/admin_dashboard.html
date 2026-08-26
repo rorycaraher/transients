@@ -34,6 +34,8 @@
     <div class="meta">{{$t.CreatedAt.Format "2006-01-02"}}</div>
     <div class="row-actions">
       <a href="/admin/tracks/{{$t.Slug}}/edit">Edit</a>
+      <button type="button" class="row-replace-trigger" data-slug="{{$t.Slug}}">Replace</button>
+      <input type="file" class="row-replace-file" data-slug="{{$t.Slug}}" accept="audio/*" hidden>
       <form method="post" action="/admin/tracks/{{$t.Slug}}/delete" class="inline" onsubmit="return confirm('Delete this track permanently?')">
         <button type="submit">Delete</button>
       </form>
@@ -42,4 +44,5 @@
   {{end}}
   {{end}}
 </main>
+<script src="{{static "replace.js"}}"></script>
 {{end}}

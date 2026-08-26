@@ -12,6 +12,14 @@ _Avoid_: player page
 The bare, chrome-less player page (`share_embed.html`) meant to be iframed into a third-party page (a tweet, a blog post) via oEmbed/Twitter Card. It shares `player.js` with the Share Page but does not own the surrounding page, so it must not claim keyboard input the host page may need for its own shortcuts.
 _Avoid_: embed page, player embed
 
+**Note**:
+A free-text, admin-authored annotation on a Track, shown publicly on the Share Page only (never the Embed, which stays chrome-less). Multi-line, unvalidated length, hidden entirely when empty.
+_Avoid_: description, comment, liner notes
+
+**Replace**:
+Swapping the audio file behind an existing Track while its slug, title, expiry, downloadable flag, and play count all stay unchanged. The previous R2 object is deleted immediately, before the replacement upload is confirmed (see [ADR 0003](./docs/adr/0003-replace-deletes-old-object-before-confirming-new.md)) — the share link 404s (same as any not-yet-ready track) until ingest confirms the new file.
+_Avoid_: re-upload, update file
+
 ### Playhead movement
 
 Three distinct ways to change the player's position, kept distinct in code and conversation so they aren't conflated:

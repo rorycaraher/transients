@@ -54,6 +54,7 @@ func (s *Server) Mux() http.Handler {
 	mux.Handle("GET /admin/tracks/{slug}/edit", s.requireAuth(s.handleEditForm))
 	mux.Handle("POST /admin/tracks/{slug}/edit", s.requireAuth(s.handleEditSubmit))
 	mux.Handle("POST /admin/tracks/{slug}/delete", s.requireAuth(s.handleDelete))
+	mux.Handle("POST /admin/tracks/{slug}/replace/request", s.requireAuth(s.handleReplaceRequest))
 
 	// Catch-all fallback: more specific patterns above always win, so this
 	// only fires for unmatched routes.

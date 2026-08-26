@@ -158,6 +158,74 @@ func TestUploadRequestAndStatusLifecycle(t *testing.T) {
 	}
 }
 
+func TestEditSubmitNotesRoundTrip(t *testing.T) {
+	srv, cfg := newTestServer(t)
+	mux := srv.Mux()
+	cookies := login(t, mux, cfg.SessionSecret)
+
+	if err := srv.store.CreateFromDiscovery("notes-test", "notes-test.mp3", "Notes Test Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := srv.store.MarkReady("notes-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+
+	form := url.Values{
+		"title": {"Notes Test Track"},
+		"notes": {"line one\nline two"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/notes-test/edit", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected redirect after edit, got %d: %s", w.Code, w.Body.String())
+	}
+
+	track, err := srv.store.GetBySlug("notes-test")
+	if err != nil {
+		t.Fatalf("GetBySlug: %v", err)
+	}
+	if track.Notes != "line one\nline two" {
+		t.Fatalf("expected notes to round-trip with newlines, got %q", track.Notes)
+	}
+
+	shareReq := httptest.NewRequest(http.MethodGet, "/t/notes-test", nil)
+	shareW := httptest.NewRecorder()
+	mux.ServeHTTP(shareW, shareReq)
+	if shareW.Code != http.StatusOK {
+		t.Fatalf("expected 200 for share page, got %d", shareW.Code)
+	}
+	if !strings.Contains(shareW.Body.String(), "line one\nline two") {
+		t.Fatalf("expected share page to render notes, got %s", shareW.Body.String())
+	}
+}
+
+func TestShareHidesEmptyNotes(t *testing.T) {
+	srv, _ := newTestServer(t)
+	mux := srv.Mux()
+
+	if err := srv.store.CreateFromDiscovery("no-notes-test", "no-notes-test.mp3", "No Notes Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := srv.store.MarkReady("no-notes-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/t/no-notes-test", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for share page, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), `class="notes"`) {
+		t.Fatalf("expected no notes block for empty notes, got %s", w.Body.String())
+	}
+}
+
 func TestPublicShareRouteNoAuthRequired(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()

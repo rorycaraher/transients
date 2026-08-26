@@ -10,6 +10,10 @@
       <input type="text" name="title" value="{{.Track.Title}}" required>
     </label>
     <label>
+      Notes (shown publicly on the share page, blank = hidden)
+      <textarea name="notes" rows="4">{{.Track.Notes}}</textarea>
+    </label>
+    <label>
       Expires at (blank = never)
       <input type="date" name="expires_at" value="{{.ExpiresAtValue}}">
     </label>
@@ -19,5 +23,20 @@
     </label>
     <button type="submit" class="btn-block">Save</button>
   </form>
+
+  <section class="replace-section">
+    <h2>Replace file</h2>
+    <div id="replace-dropzone" class="dropzone" data-slug="{{.Track.Slug}}">
+      <div class="hint" id="replace-dropzone-hint">Drag &amp; drop or click to select a replacement file</div>
+      <div class="filename" id="replace-dropzone-filename">No file chosen</div>
+      <input type="file" id="replace-file" accept="audio/*">
+    </div>
+    <div id="replace-progress-wrap" hidden>
+      <progress id="replace-progress" value="0" max="100"></progress>
+      <p id="replace-status-text">Uploading...</p>
+    </div>
+    <p id="replace-error" class="error" hidden></p>
+  </section>
 </main>
+<script src="{{static "replace.js"}}"></script>
 {{end}}
