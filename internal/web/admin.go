@@ -62,9 +62,9 @@ func (s *Server) handleEditSubmit(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 	downloadable := r.FormValue("downloadable") != ""
-	notes := r.FormValue("notes")
+	description := r.FormValue("description")
 
-	if err := s.store.UpdateTrack(slug, title, expiresAt, downloadable, notes); err != nil {
+	if err := s.store.UpdateTrack(slug, title, expiresAt, downloadable, description); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			http.NotFound(w, r)
 			return

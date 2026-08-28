@@ -20,9 +20,9 @@
   <div class="eyebrow">Track</div>
   <h1>{{.Track.Title}}</h1>
   {{template "player" .}}
-  {{if .Track.Notes}}
-  <div class="eyebrow">Notes</div>
-  <p class="notes">{{.Track.Notes}}</p>
+  {{if .Track.Description}}
+  <div class="eyebrow">Description</div>
+  <p class="description">{{.Track.Description}}</p>
   {{end}}
   {{if .DownloadURL}}<a class="btn-ghost btn-block" href="{{.DownloadURL}}">Download file</a>{{end}}
 </main>

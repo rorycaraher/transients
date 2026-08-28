@@ -48,6 +48,7 @@ form.addEventListener("submit", async (e) => {
   if (!file) return;
 
   const title = document.getElementById("title").value.trim();
+  const description = document.getElementById("description").value.trim();
   const expiresDays = document.getElementById("expires-days").value.trim();
   const downloadable = document.getElementById("downloadable").checked;
 
@@ -71,6 +72,7 @@ form.addEventListener("submit", async (e) => {
         content_type: file.type || "application/octet-stream",
         expires_in_days: expiresDays ? Number(expiresDays) : undefined,
         downloadable,
+        description,
       }),
     });
     if (!requestResp.ok) throw new Error("Failed to prepare upload");
