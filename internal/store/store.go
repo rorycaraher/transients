@@ -28,7 +28,7 @@ type Track struct {
 	CreatedAt    time.Time
 	ReadyAt      sql.NullTime
 	PlayCount    int64
-	Notes        string
+	Description  string
 }
 
 func (t *Track) Expired() bool {
@@ -45,10 +45,10 @@ func New(db *sql.DB) *Store {
 
 // CreatePending inserts a row for a presigned upload that hasn't been
 // discovered by the ingest pipeline yet. slug == objectKey for this path.
-func (s *Store) CreatePending(slug, objectKey, title string, expiresAt *time.Time, downloadable bool) error {
+func (s *Store) CreatePending(slug, objectKey, title string, expiresAt *time.Time, downloadable bool, description string) error {
 	_, err := s.db.Exec(
-		`INSERT INTO tracks (slug, object_key, title, status, expires_at, downloadable) VALUES (?, ?, ?, ?, ?, ?)`,
-		slug, objectKey, title, StatusPending, nullTime(expiresAt), downloadable,
+		`INSERT INTO tracks (slug, object_key, title, status, expires_at, downloadable, description) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		slug, objectKey, title, StatusPending, nullTime(expiresAt), downloadable, description,
 	)
 	return err
 }
@@ -66,13 +66,13 @@ func (s *Store) CreateFromDiscovery(slug, objectKey, title string) error {
 
 func (s *Store) GetByObjectKey(objectKey string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, description
 		 FROM tracks WHERE object_key = ?`, objectKey))
 }
 
 func (s *Store) GetBySlug(slug string) (*Track, error) {
 	return s.scanOne(s.db.QueryRow(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, description
 		 FROM tracks WHERE slug = ?`, slug))
 }
 
@@ -90,10 +90,10 @@ func (s *Store) MarkFailed(slug string) error {
 	return err
 }
 
-func (s *Store) UpdateTrack(slug, title string, expiresAt *time.Time, downloadable bool, notes string) error {
+func (s *Store) UpdateTrack(slug, title string, expiresAt *time.Time, downloadable bool, description string) error {
 	res, err := s.db.Exec(
-		`UPDATE tracks SET title = ?, expires_at = ?, downloadable = ?, notes = ? WHERE slug = ?`,
-		title, nullTime(expiresAt), downloadable, notes, slug,
+		`UPDATE tracks SET title = ?, expires_at = ?, downloadable = ?, description = ? WHERE slug = ?`,
+		title, nullTime(expiresAt), downloadable, description, slug,
 	)
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func (s *Store) Delete(slug string) error {
 
 func (s *Store) ListAll() ([]*Track, error) {
 	rows, err := s.db.Query(
-		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, notes
+		`SELECT slug, object_key, title, status, content_type, size_bytes, downloadable, expires_at, created_at, ready_at, play_count, description
 		 FROM tracks ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (s *Store) scan(row rowScanner) (*Track, error) {
 	var t Track
 	err := row.Scan(
 		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
-		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount, &t.Notes,
+		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount, &t.Description,
 	)
 	if err != nil {
 		return nil, err

@@ -158,23 +158,23 @@ func TestUploadRequestAndStatusLifecycle(t *testing.T) {
 	}
 }
 
-func TestEditSubmitNotesRoundTrip(t *testing.T) {
+func TestEditSubmitDescriptionRoundTrip(t *testing.T) {
 	srv, cfg := newTestServer(t)
 	mux := srv.Mux()
 	cookies := login(t, mux, cfg.SessionSecret)
 
-	if err := srv.store.CreateFromDiscovery("notes-test", "notes-test.mp3", "Notes Test Track"); err != nil {
+	if err := srv.store.CreateFromDiscovery("description-test", "description-test.mp3", "Description Test Track"); err != nil {
 		t.Fatalf("CreateFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("notes-test", "audio/mpeg", 1234); err != nil {
+	if err := srv.store.MarkReady("description-test", "audio/mpeg", 1234); err != nil {
 		t.Fatalf("MarkReady: %v", err)
 	}
 
 	form := url.Values{
-		"title": {"Notes Test Track"},
-		"notes": {"line one\nline two"},
+		"title":       {"Description Test Track"},
+		"description": {"line one\nline two"},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/notes-test/edit", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/description-test/edit", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	for _, c := range cookies {
 		req.AddCookie(c)
@@ -185,44 +185,72 @@ func TestEditSubmitNotesRoundTrip(t *testing.T) {
 		t.Fatalf("expected redirect after edit, got %d: %s", w.Code, w.Body.String())
 	}
 
-	track, err := srv.store.GetBySlug("notes-test")
+	track, err := srv.store.GetBySlug("description-test")
 	if err != nil {
 		t.Fatalf("GetBySlug: %v", err)
 	}
-	if track.Notes != "line one\nline two" {
-		t.Fatalf("expected notes to round-trip with newlines, got %q", track.Notes)
+	if track.Description != "line one\nline two" {
+		t.Fatalf("expected description to round-trip with newlines, got %q", track.Description)
 	}
 
-	shareReq := httptest.NewRequest(http.MethodGet, "/t/notes-test", nil)
+	shareReq := httptest.NewRequest(http.MethodGet, "/t/description-test", nil)
 	shareW := httptest.NewRecorder()
 	mux.ServeHTTP(shareW, shareReq)
 	if shareW.Code != http.StatusOK {
 		t.Fatalf("expected 200 for share page, got %d", shareW.Code)
 	}
 	if !strings.Contains(shareW.Body.String(), "line one\nline two") {
-		t.Fatalf("expected share page to render notes, got %s", shareW.Body.String())
+		t.Fatalf("expected share page to render description, got %s", shareW.Body.String())
 	}
 }
 
-func TestShareHidesEmptyNotes(t *testing.T) {
+func TestShareHidesEmptyDescription(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()
 
-	if err := srv.store.CreateFromDiscovery("no-notes-test", "no-notes-test.mp3", "No Notes Track"); err != nil {
+	if err := srv.store.CreateFromDiscovery("no-description-test", "no-description-test.mp3", "No Description Track"); err != nil {
 		t.Fatalf("CreateFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("no-notes-test", "audio/mpeg", 1234); err != nil {
+	if err := srv.store.MarkReady("no-description-test", "audio/mpeg", 1234); err != nil {
 		t.Fatalf("MarkReady: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/t/no-notes-test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/t/no-description-test", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 for share page, got %d", w.Code)
 	}
-	if strings.Contains(w.Body.String(), `class="notes"`) {
-		t.Fatalf("expected no notes block for empty notes, got %s", w.Body.String())
+	if strings.Contains(w.Body.String(), `class="description"`) {
+		t.Fatalf("expected no description block for empty description, got %s", w.Body.String())
+	}
+}
+
+func TestUploadRequestStoresDescription(t *testing.T) {
+	srv, cfg := newTestServer(t)
+	mux := srv.Mux()
+	cookies := login(t, mux, cfg.SessionSecret)
+
+	reqBody := `{"title":"My Track","filename":"song.mp3","content_type":"audio/mpeg","description":"line one\nline two"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/upload/request", strings.NewReader(reqBody))
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("upload request failed: %d %s", w.Code, w.Body.String())
+	}
+
+	slug := extractJSONString(t, w.Body.String(), "slug")
+
+	track, err := srv.store.GetBySlug(slug)
+	if err != nil {
+		t.Fatalf("GetBySlug: %v", err)
+	}
+	if track.Description != "line one\nline two" {
+		t.Fatalf("expected description to be stored from upload request, got %q", track.Description)
 	}
 }
 
