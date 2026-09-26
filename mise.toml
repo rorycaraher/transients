@@ -1,0 +1,29 @@
+[tools]
+opentofu = "1.12.6"
+tflint = "0.64.0"
+conftest = "0.70.1"
+"pipx:checkov" = "3.3.19"
+
+[tasks.lint]
+description = "tofu fmt check + tflint (fast; also the pre-commit hook)"
+run = [
+  "tofu fmt -check -recursive -diff infra/opentofu",
+  "tflint --chdir=infra/opentofu --init",
+  "tflint --chdir=infra/opentofu",
+]
+
+[tasks.validate]
+description = "tofu validate (needs `tofu init` first; CI runs `init -backend=false`)"
+run = "tofu -chdir=infra/opentofu validate"
+
+[tasks.scan]
+description = "checkov over the repo + Rego unit tests for the Conftest policies"
+run = [
+  "checkov --config-file .checkov.yaml",
+  "conftest verify --policy infra/policy",
+]
+
+[tasks.plan-check]
+description = "Run the Conftest policies against a saved plan (default: tfplan). Never plans or applies."
+usage = 'arg "[plan]" help="Plan file, relative to infra/opentofu" default="tfplan"'
+run = "tofu -chdir=infra/opentofu show -json $usage_plan | conftest test --parser json --policy infra/policy -"

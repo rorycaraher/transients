@@ -42,6 +42,33 @@ away from production's.
 
 No hot-reload — re-run `go run ./cmd/server` after code changes.
 
+## Infrastructure checks
+
+Tool versions and tasks are pinned in `mise.toml` (`mise install` once):
+
+| Task | What it runs |
+|---|---|
+| `mise run lint` | `tofu fmt -check` + TFLint (also the pre-commit hook: `pre-commit install`) |
+| `mise run validate` | `tofu validate` (run `tofu init` yourself first) |
+| `mise run scan` | Checkov over the repo + `conftest verify` (Rego unit tests) |
+| `mise run plan-check` | Conftest policies against a saved plan |
+
+CI (`.github/workflows/checks.yml`) runs `lint`, `validate` (with
+`init -backend=false`) and `scan` on every PR to `main`. It never plans:
+the plan-based policies in `infra/policy/` run only on your machine, between
+plan and apply (see `docs/adr/0004-plan-policies-run-locally-not-in-ci.md`):
+
+```sh
+tofu plan -out=tfplan     # read it
+mise run plan-check       # policy verdict on that exact plan
+tofu apply tfplan         # applies the checked plan; no confirmation prompt
+```
+
+`tfplan` is unencrypted and gitignored — delete it after applying.
+Suppress a finding inline with a reason (`#checkov:skip=CKV_X:why`,
+`# tflint-ignore: rule`, or an entry in `exemptions` in
+`infra/policy/exemptions.rego`); there is no baseline file.
+
 ## Environment variables
 
 | Var | Notes |

@@ -10,3 +10,5 @@
 /infra/opentofu/.envrc
 /infra/opentofu/terraform.tfvars
 
+/infra/opentofu/tfplan
+/infra/opentofu/*.tfplan

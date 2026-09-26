@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: infra-lint
+        name: infra lint (tofu fmt + tflint)
+        entry: mise run lint
+        language: system
+        pass_filenames: false
+        files: ^infra/opentofu/
