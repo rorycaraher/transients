@@ -1,0 +1,29 @@
+name: Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v4
+
+      - name: Lint
+        run: mise run lint
+
+      - name: Validate
+        run: |
+          tofu -chdir=infra/opentofu init -backend=false
+          mise run validate
+
+      - name: Scan
+        run: mise run scan

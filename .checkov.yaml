@@ -1,0 +1,13 @@
+directory:
+  - .
+framework:
+  - terraform
+  - dockerfile
+  - github_actions
+  - secrets
+compact: true
+quiet: true
+skip-path:
+  - \.terraform
+  - ^\.env$
+  - ^\.env\.local$

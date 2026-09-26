@@ -14,6 +14,9 @@ on:
       - '.dockerignore'
       - '.github/workflows/deploy.yml'
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
