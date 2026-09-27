@@ -204,6 +204,69 @@ func TestEditSubmitDescriptionRoundTrip(t *testing.T) {
 	}
 }
 
+func TestRotateSlugBreaksOldLinkAndServesNew(t *testing.T) {
+	srv, cfg := newTestServer(t)
+	mux := srv.Mux()
+	cookies := login(t, mux, cfg.SessionSecret)
+
+	if err := srv.store.CreateFromDiscovery("rotate-test", "rotate-test.mp3", "Rotate Test Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := srv.store.MarkReady("rotate-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/rotate-test/rotate", nil)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected redirect after rotate, got %d: %s", w.Code, w.Body.String())
+	}
+
+	loc := w.Result().Header.Get("Location")
+	const prefix, suffix = "/admin/tracks/", "/edit"
+	if !strings.HasPrefix(loc, prefix) || !strings.HasSuffix(loc, suffix) {
+		t.Fatalf("expected redirect to new slug's edit page, got %q", loc)
+	}
+	newSlug := strings.TrimSuffix(strings.TrimPrefix(loc, prefix), suffix)
+	if newSlug == "" || newSlug == "rotate-test" {
+		t.Fatalf("expected a freshly generated slug, got %q", newSlug)
+	}
+
+	oldShareReq := httptest.NewRequest(http.MethodGet, "/t/rotate-test", nil)
+	oldShareW := httptest.NewRecorder()
+	mux.ServeHTTP(oldShareW, oldShareReq)
+	if oldShareW.Code != http.StatusNotFound {
+		t.Fatalf("expected old slug to 404, got %d", oldShareW.Code)
+	}
+
+	newShareReq := httptest.NewRequest(http.MethodGet, "/t/"+newSlug, nil)
+	newShareW := httptest.NewRecorder()
+	mux.ServeHTTP(newShareW, newShareReq)
+	if newShareW.Code != http.StatusOK {
+		t.Fatalf("expected new slug to serve the share page, got %d", newShareW.Code)
+	}
+}
+
+func TestRotateSlugUnknownSlug404(t *testing.T) {
+	srv, cfg := newTestServer(t)
+	mux := srv.Mux()
+	cookies := login(t, mux, cfg.SessionSecret)
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/does-not-exist/rotate", nil)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unknown slug, got %d", w.Code)
+	}
+}
+
 func TestShareHidesEmptyDescription(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()

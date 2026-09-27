@@ -59,3 +59,50 @@ func TestBeginReplaceUnknownSlug(t *testing.T) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
+
+func TestRotateSlugUpdatesSlugOnly(t *testing.T) {
+	s := newTestStore(t)
+
+	if err := s.CreateFromDiscovery("track1", "track1.mp3", "My Track"); err != nil {
+		t.Fatalf("CreateFromDiscovery: %v", err)
+	}
+	if err := s.MarkReady("track1", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkReady: %v", err)
+	}
+	if err := s.IncrementPlayCount("track1"); err != nil {
+		t.Fatalf("IncrementPlayCount: %v", err)
+	}
+
+	if err := s.RotateSlug("track1", "track2"); err != nil {
+		t.Fatalf("RotateSlug: %v", err)
+	}
+
+	if _, err := s.GetBySlug("track1"); err != ErrNotFound {
+		t.Fatalf("expected old slug to 404, got %v", err)
+	}
+
+	track, err := s.GetBySlug("track2")
+	if err != nil {
+		t.Fatalf("GetBySlug: %v", err)
+	}
+	if track.ObjectKey != "track1.mp3" {
+		t.Fatalf("expected object_key untouched, got %q", track.ObjectKey)
+	}
+	if track.Title != "My Track" {
+		t.Fatalf("expected title untouched, got %q", track.Title)
+	}
+	if track.PlayCount != 1 {
+		t.Fatalf("expected play_count untouched, got %d", track.PlayCount)
+	}
+	if track.Status != StatusReady {
+		t.Fatalf("expected status untouched, got %q", track.Status)
+	}
+}
+
+func TestRotateSlugUnknownSlug(t *testing.T) {
+	s := newTestStore(t)
+
+	if err := s.RotateSlug("does-not-exist", "new-slug"); err != ErrNotFound {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
