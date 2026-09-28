@@ -4,7 +4,7 @@ go = "1.25.14"
 opentofu = "1.12.6"
 tflint = "0.64.0"
 conftest = "0.70.1"
-"pipx:checkov" = "3.3.19"
+checkov = "3.3.19"
 pre-commit = "4.6.2"
 
 [tasks.setup]
