@@ -26,8 +26,15 @@ enable download per-file.
 ## Local development
 
 ```sh
-go build ./... && go vet ./... && go test ./...
+mise install     # pinned Go, OpenTofu, TFLint, Conftest, Checkov, govulncheck, pre-commit
+mise run setup   # once per clone: installs the git pre-commit hook
+mise run check:go   # exactly what CI runs for Go
 ```
+
+`check:go` = gofmt, `go mod tidy -diff`, build, vet, `test -race`, and
+`govulncheck`. The Go version is pinned in `mise.toml`, `go.mod`, and the
+Dockerfile's `FROM` (tag + digest) — keep the three in step; Dependabot
+bumps `go.mod` and the Dockerfile, but `mise.toml` is manual.
 
 There's no offline/mock mode — `go run ./cmd/server` always needs real R2 +
 Cloudflare credentials, ideally a separate `dev` Tofu workspace
@@ -50,11 +57,14 @@ Tool versions and tasks are pinned in `mise.toml` (`mise install` once):
 |---|---|
 | `mise run lint` | `tofu fmt -check` + TFLint (also the pre-commit hook: `pre-commit install`) |
 | `mise run validate` | `tofu validate` (run `tofu init` yourself first) |
-| `mise run scan` | Checkov over the repo + `conftest verify` (Rego unit tests) |
+| `mise run policy` | `conftest fmt --check` + `conftest verify` on the Rego policies (also a pre-commit hook) |
+| `mise run scan` | Checkov over the repo + `mise run policy` |
 | `mise run plan-check` | Conftest policies against a saved plan |
 
 CI (`.github/workflows/checks.yml`) runs `lint`, `validate` (with
-`init -backend=false`) and `scan` on every PR to `main`. It never plans:
+`init -backend=false`) and `scan` on every PR to `main`; `ci.yml` runs
+`mise run check:go` plus a Docker build, and `deploy.yml` calls it as a gate
+before touching the VPS. CI never plans:
 the plan-based policies in `infra/policy/` run only on your machine, between
 plan and apply (see `docs/adr/0004-plan-policies-run-locally-not-in-ci.md`):
 

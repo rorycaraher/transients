@@ -15,7 +15,7 @@ cookie (no server-side session store).
 ## Commands
 
 ```sh
-go build ./... && go vet ./... && go test ./...   # what CI runs
+mise run check:go                                  # what CI runs for Go (gofmt, tidy, build, vet, -race, govulncheck)
 go test ./internal/store/...                       # single package
 go test ./internal/auth/ -run TestCheckPassword     # single test
 mise run lint && mise run scan                     # infra checks CI runs (checks.yml); see README
@@ -101,8 +101,8 @@ rule from `~/dotfiles/claude/AGENTS.md` — that global rule still applies
 everywhere else. In this repo only:
 
 - Claude may `git add` / `commit` / `push` autonomously, on any branch
-  **except `main`**. Before an autonomous commit, `go build ./...`,
-  `go vet ./...`, and `go test ./...` must all pass.
+  **except `main`**. Before an autonomous commit, `mise run check:go`
+  must pass.
 - Commit messages: match the existing history's style — terse, lowercase,
   no type-prefixes (e.g. `add notes and file-replace feature`, not
   `feat: add notes`).

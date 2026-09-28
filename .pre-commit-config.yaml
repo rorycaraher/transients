@@ -7,3 +7,9 @@ repos:
         language: system
         pass_filenames: false
         files: ^infra/opentofu/
+      - id: policy-test
+        name: policy tests (conftest fmt + verify)
+        entry: mise run policy
+        language: system
+        pass_filenames: false
+        files: ^infra/policy/
