@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
@@ -13,12 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - uses: jdx/mise-action@v4
         with:
-          go-version-file: go.mod
+          install_args: go go:golang.org/x/vuln/cmd/govulncheck
 
       - name: Verify
-        run: go build ./... && go vet ./... && go test ./...
+        run: mise run check:go
 
       - name: Verify Docker image builds
         run: docker build .

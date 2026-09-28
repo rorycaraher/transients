@@ -1,8 +1,26 @@
 [tools]
+go = "1.25.14"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
 opentofu = "1.12.6"
 tflint = "0.64.0"
 conftest = "0.70.1"
-"pipx:checkov" = "3.3.19"
+checkov = "3.3.19"
+pre-commit = "4.6.2"
+
+[tasks.setup]
+description = "One-time per clone: install the git pre-commit hook"
+run = "pre-commit install"
+
+[tasks."check:go"]
+description = "What CI runs for Go: gofmt, go.mod tidy, build, vet, race tests, govulncheck"
+run = [
+  "test -z \"$(gofmt -l .)\" || { gofmt -l .; exit 1; }",
+  "go mod tidy -diff",
+  "go build ./...",
+  "go vet ./...",
+  "go test -race ./...",
+  "govulncheck ./...",
+]
 
 [tasks.lint]
 description = "tofu fmt check + tflint (fast; also the pre-commit hook)"
@@ -16,11 +34,18 @@ run = [
 description = "tofu validate (needs `tofu init` first; CI runs `init -backend=false`)"
 run = "tofu -chdir=infra/opentofu validate"
 
+[tasks.policy]
+description = "Rego format check + unit tests for the Conftest policies (fast; also a pre-commit hook)"
+run = [
+  "conftest fmt --check infra/policy",
+  "conftest verify --policy infra/policy",
+]
+
 [tasks.scan]
-description = "checkov over the repo + Rego unit tests for the Conftest policies"
+description = "checkov over the repo + the policy tests"
 run = [
   "checkov --config-file .checkov.yaml",
-  "conftest verify --policy infra/policy",
+  { task = "policy" },
 ]
 
 [tasks.plan-check]

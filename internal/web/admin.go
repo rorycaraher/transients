@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rorycaraher/transients/internal/idgen"
 	"github.com/rorycaraher/transients/internal/store"
 )
 
@@ -75,6 +76,27 @@ func (s *Server) handleEditSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// handleRotateSlug generates a fresh slug and repoints the track at it (see
+// store.RotateSlug), so the old /t/{slug} link 404s exactly like an unknown
+// one from then on. Everything else about the track — file, expiry, stats —
+// is untouched.
+func (s *Server) handleRotateSlug(w http.ResponseWriter, r *http.Request) {
+	oldSlug := r.PathValue("slug")
+	newSlug := idgen.New()
+
+	if err := s.store.RotateSlug(oldSlug, newSlug); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		s.log.Error("rotate slug failed", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/tracks/"+newSlug+"/edit", http.StatusSeeOther)
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {

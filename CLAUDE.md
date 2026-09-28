@@ -15,7 +15,7 @@ cookie (no server-side session store).
 ## Commands
 
 ```sh
-go build ./... && go vet ./... && go test ./...   # what CI runs
+mise run check:go                                  # what CI runs for Go (gofmt, tidy, build, vet, -race, govulncheck)
 go test ./internal/store/...                       # single package
 go test ./internal/auth/ -run TestCheckPassword     # single test
 mise run lint && mise run scan                     # infra checks CI runs (checks.yml); see README
@@ -93,6 +93,30 @@ builds its own image, same as another app already deployed on that box.
 bind-mounted DB directory). Caddy is untouched by any of this: it
 still runs directly on the host and reverse-proxies to `PORT`, since it
 also fronts other sites on the same VPS.
+
+## Git
+
+This repo overrides the global "never run state-changing git commands"
+rule from `~/dotfiles/claude/AGENTS.md` — that global rule still applies
+everywhere else. In this repo only:
+
+- Claude may `git add` / `commit` / `push` autonomously, on any branch
+  **except `main`**. Before an autonomous commit, `mise run check:go`
+  must pass.
+- Commit messages: match the existing history's style — terse, lowercase,
+  no type-prefixes (e.g. `add notes and file-replace feature`, not
+  `feat: add notes`).
+- Once work on a branch is ready, Claude may open a `dev` → `main` PR
+  autonomously via `gh pr create` — no need to ask first. PR title follows
+  the same terse commit style; PR body is a short Summary + Test plan (a
+  deliberate change from this repo's past PRs, which all had empty bodies).
+- Merging into `main` stays manual. `main` has no branch protection and a
+  push to it auto-triggers `.github/workflows/deploy.yml`, which rebuilds
+  and restarts the container on the VPS with no review step — Claude never
+  merges or pushes to `main` itself; that's the one checkpoint before prod.
+- Everything else the global rule covers — merge, rebase, reset, checkout
+  (branch-switch or file-restore), stash, branch/tag create-or-delete —
+  stays manual here too.
 
 ## Conventions
 

@@ -25,6 +25,14 @@
   </form>
 
   <section class="replace-section">
+    <h2>Rotate link</h2>
+    <p class="description">Current link: /t/{{.Track.Slug}}</p>
+    <form method="post" action="/admin/tracks/{{.Track.Slug}}/rotate" onsubmit="return confirm('Rotate this track\'s link? The current share link will stop working immediately.')">
+      <button type="submit" class="btn-block">Rotate link</button>
+    </form>
+  </section>
+
+  <section class="replace-section">
     <h2>Replace file</h2>
     <div id="replace-dropzone" class="dropzone" data-slug="{{.Track.Slug}}">
       <div class="hint" id="replace-dropzone-hint">Drag &amp; drop or click to select a replacement file</div>
