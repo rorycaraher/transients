@@ -96,7 +96,7 @@ this isn't a fix). There's no image registry, and no image transfer either.
 One-time setup on the VPS:
 
 ```sh
-git clone <this repo's URL> ~/transients
+git clone git@github.com:rorycaraher/transients.git ~/transients
 sudo mkdir -p /var/lib/transients
 sudo chown 65532:65532 /var/lib/transients   # matches the container's non-root UID
 ```
