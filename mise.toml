@@ -52,3 +52,7 @@ run = [
 description = "Run the Conftest policies against a saved plan (default: tfplan). Never plans or applies."
 usage = 'arg "[plan]" help="Plan file, relative to infra/opentofu" default="tfplan"'
 run = "tofu -chdir=infra/opentofu show -json $usage_plan | conftest test --parser json --policy infra/policy -"
+
+[tasks.sync-env]
+description = "Push Tofu-derived credentials to the VPS .env and recreate the container (needs VPS_SSH=user@host; prod workspace only)"
+run = "scripts/sync-env.sh"

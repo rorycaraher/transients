@@ -60,6 +60,7 @@ Tool versions and tasks are pinned in `mise.toml` (`mise install` once):
 | `mise run policy` | `conftest fmt --check` + `conftest verify` on the Rego policies (also a pre-commit hook) |
 | `mise run scan` | Checkov over the repo + `mise run policy` |
 | `mise run plan-check` | Conftest policies against a saved plan |
+| `mise run sync-env` | Copies the Tofu-derived credentials into the VPS `.env` and recreates the container (`VPS_SSH=user@host`; see below) |
 
 CI (`.github/workflows/checks.yml`) runs `lint`, `validate` (with
 `init -backend=false`) and `scan` on every PR to `main`; `ci.yml` runs
@@ -90,6 +91,14 @@ Suppress a finding inline with a reason (`#checkov:skip=CKV_X:why`,
 | `SESSION_SECRET` | `openssl rand -hex 32` |
 | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | from `tofu output` in `infra/opentofu` |
 | `CF_API_TOKEN`, `CF_QUEUE_ID` | from `tofu output` in `infra/opentofu` |
+
+After any `tofu apply` that changes the app token or queue, run
+`VPS_SSH=user@host mise run sync-env`. It reads `tofu output` locally (prod
+workspace only), rewrites just `R2_BUCKET`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `CF_API_TOKEN` and `CF_QUEUE_ID` in
+`~/transients/.env` over ssh (previous file kept as `.env.bak`), then runs
+`docker compose up -d --force-recreate` and checks the logs for poll errors.
+The other variables, including `R2_ACCOUNT_ID`, are left as they are.
 
 See `.env.example` (prod, loaded via Docker Compose's `env_file:`) and
 `.env.local.example` (local dev, loaded via `source` — note the comment
