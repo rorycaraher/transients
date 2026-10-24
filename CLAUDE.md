@@ -18,7 +18,7 @@ cookie (no server-side session store).
 mise run check:go                                  # what CI runs for Go (gofmt, tidy, build, vet, -race, govulncheck)
 go test ./internal/store/...                       # single package
 go test ./internal/auth/ -run TestCheckPassword     # single test
-mise run lint && mise run scan                     # infra checks CI runs (checks.yml); see README
+mise run lint && mise run scan                     # infra checks CI runs (infra.yml); see README
 ```
 
 Running the server locally needs real Cloudflare R2 + Queue credentials —

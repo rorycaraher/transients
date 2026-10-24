@@ -3,7 +3,7 @@
 **Status**: accepted
 
 The infra guardrails are split by what they need. TFLint, Checkov, and
-`tofu validate` work on source, so they run in CI (`checks.yml`) and block
+`tofu validate` work on source, so they run in CI (`infra.yml`) and block
 PRs. The Conftest policies in `infra/policy/` run against `tofu show -json`
 output of a saved plan, so they run only on the admin's machine
 (`mise run plan-check`), between `tofu plan -out=tfplan` and

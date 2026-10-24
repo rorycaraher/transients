@@ -62,10 +62,12 @@ Tool versions and tasks are pinned in `mise.toml` (`mise install` once):
 | `mise run plan-check` | Conftest policies against a saved plan |
 | `mise run sync-env` | Copies the Tofu-derived credentials into the VPS `.env` and recreates the container (`VPS_SSH=user@host`; see below) |
 
-CI (`.github/workflows/checks.yml`) runs `lint`, `validate` (with
-`init -backend=false`) and `scan` on every PR to `main`; `ci.yml` runs
-`mise run check:go` plus a Docker build, and `deploy.yml` calls it as a gate
-before touching the VPS. CI never plans:
+Two workflows run on every PR to `main`, unfiltered by path so they can be
+required status checks: `.github/workflows/infra.yml` ("Infra") runs `lint`,
+`validate` (with `init -backend=false`) and `scan`, and
+`.github/workflows/go.yml` ("Go") runs `mise run check:go` plus a Docker
+build. Branch protection on `main` requires both; `deploy.yml` runs no tests
+of its own. CI never plans:
 the plan-based policies in `infra/policy/` run only on your machine, between
 plan and apply (see `docs/adr/0004-plan-policies-run-locally-not-in-ci.md`):
 
@@ -128,8 +130,8 @@ of this — it still runs directly on the host and reverse-proxies to
 
 `.github/workflows/deploy.yml` automates redeploys on push to `main` (only
 when a change actually touches the compiled binary, the Dockerfile, or
-`docker-compose.yml` — Go files, templates, and static assets count too,
-since those are embedded). It SSHes into the VPS, resets `~/transients` to
+`docker-compose.yml` — Go files, templates, static assets, and SQL
+migrations count too, since those are embedded). It SSHes into the VPS, resets `~/transients` to
 `origin/main`, and runs `docker compose up -d --build` there, polling the
 container's own `HEALTHCHECK` status before declaring success.
 
