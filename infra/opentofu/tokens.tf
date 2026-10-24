@@ -56,17 +56,29 @@ locals {
 resource "cloudflare_account_token" "app" {
   account_id = var.cloudflare_account_id
   name       = "transients-app${local.name_suffix}"
-  policies = [{
-    effect = "allow"
-    permission_groups = [
-      { id = local.permission_id.r2_read },
-      { id = local.permission_id.r2_write },
-      { id = local.permission_id.queues_read },
-      { id = local.permission_id.queues_write },
-    ]
-    resources = jsonencode({
-      (local.r2_bucket_resource) = "*"
-      (local.account_resource)   = "*"
-    })
-  }]
+  # One policy per resource scope. With all four groups in a single policy
+  # spanning both resources, Queues reads worked but pull/ack failed with
+  # "Authentication error"; splitting by scope fixed it.
+  policies = [
+    {
+      effect = "allow"
+      permission_groups = [
+        { id = local.permission_id.r2_read },
+        { id = local.permission_id.r2_write },
+      ]
+      resources = jsonencode({
+        (local.r2_bucket_resource) = "*"
+      })
+    },
+    {
+      effect = "allow"
+      permission_groups = [
+        { id = local.permission_id.queues_read },
+        { id = local.permission_id.queues_write },
+      ]
+      resources = jsonencode({
+        (local.account_resource) = "*"
+      })
+    },
+  ]
 }

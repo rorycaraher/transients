@@ -1,0 +1,43 @@
+# Go: the Go-side gate on every PR to main.
+#
+# Runs `mise run check:go` (gofmt, go.mod tidy, build, vet, race tests,
+# govulncheck) and confirms the Dockerfile still builds. The sibling
+# workflow, infra.yml, covers the OpenTofu/checkov side. Both run on every
+# PR, with no path filters, so they can be required status checks on main
+# (a path-skipped workflow never reports and would block the PR forever).
+#
+# deploy.yml does not re-run this: branch protection on main requires this
+# check to pass on an up-to-date branch before anything can merge.
+
+name: Go
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The job name is what branch protection matches, so keep it "Go".
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install Go and govulncheck
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: go go:golang.org/x/vuln/cmd/govulncheck
+
+      - name: gofmt, tidy, build, vet, race tests, govulncheck
+        run: mise run check:go
+
+      - name: Verify Docker image builds
+        run: docker build .

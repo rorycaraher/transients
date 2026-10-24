@@ -1,0 +1,47 @@
+# Infra: the infrastructure gate on every PR to main.
+#
+# Runs tofu fmt + tflint, `tofu validate`, and checkov (plus the Conftest
+# policy unit tests). checkov scans the whole repo (Terraform, Dockerfile,
+# GitHub Actions, secrets), which is why this has no path filter. The
+# sibling workflow, go.yml, covers the Go side. Both are required status
+# checks on main, so neither may be skipped by a `paths:` filter.
+#
+# This never plans or applies anything; plans are run by hand (see ADR 0004).
+
+name: Infra
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The job name is what branch protection matches, so keep it "Infra".
+  infra:
+    name: Infra
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: tofu fmt check and tflint
+        run: mise run lint
+
+      - name: tofu validate (init without backend)
+        run: |
+          tofu -chdir=infra/opentofu init -backend=false
+          mise run validate
+
+      - name: checkov and policy tests
+        run: mise run scan

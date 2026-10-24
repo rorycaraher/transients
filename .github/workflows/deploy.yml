@@ -1,3 +1,14 @@
+# Deploy: rebuild and restart the container on the VPS after a merge to main.
+#
+# This runs no tests. Branch protection on main requires the Go and Infra
+# checks (go.yml, infra.yml) to pass on an up-to-date branch before a merge,
+# so a commit on main has already been tested.
+#
+# The path filter lists everything that changes the compiled binary or the
+# image. Templates, static assets and SQL migrations are go:embed-ed, so
+# they count even though they are not Go files. Merges that touch only docs
+# or infra/ do not redeploy.
+
 name: Deploy
 
 on:
@@ -7,6 +18,7 @@ on:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - 'internal/db/migrations/**'
       - 'internal/web/templates/**'
       - 'internal/web/static/**'
       - 'Dockerfile'
@@ -17,8 +29,15 @@ on:
 permissions:
   contents: read
 
+# Queue rather than cancel: killing a deploy halfway can leave the VPS on a
+# half-built image.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH

@@ -129,6 +129,24 @@ func (s *Store) BeginReplace(slug, newObjectKey string) error {
 	return nil
 }
 
+// RotateSlug points a track at a freshly generated slug, breaking any link
+// built from the old one (GetBySlug on it now returns ErrNotFound) without
+// touching object_key, expires_at, or anything else about the row.
+func (s *Store) RotateSlug(oldSlug, newSlug string) error {
+	res, err := s.db.Exec(`UPDATE tracks SET slug = ? WHERE slug = ?`, newSlug, oldSlug)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // IncrementPlayCount records one play for slug. Called from the public,
 // unauthenticated share/embed player beacon, so it deliberately does nothing
 // fancier than an atomic increment: no rate limiting or dedup beyond what
