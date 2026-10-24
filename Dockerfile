@@ -1,6 +1,6 @@
 # Keep the tag in step with `go` in mise.toml and the go directive in go.mod;
 # the digest makes the base immutable (Dependabot bumps both).
-FROM golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82 AS builder
+FROM golang:1.27.2@sha256:820153096fda4de6ac1b7194d12e416b7dd8f4e9a33d17e0345b111b945162d8 AS builder
 WORKDIR /src
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
