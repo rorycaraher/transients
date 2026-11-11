@@ -55,7 +55,7 @@ func (s *Server) handleUploadRequest(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 
-	if err := s.store.CreatePending(slug, objectKey, title, expiresAt, body.Downloadable, body.Description); err != nil {
+	if err := s.store.CreatePendingTrack(slug, objectKey, title, expiresAt, body.Downloadable, body.Description); err != nil {
 		s.log.Error("create pending track failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -74,7 +74,7 @@ func (s *Server) handleUploadRequest(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleUploadStatus(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 
-	track, err := s.store.GetBySlug(slug)
+	track, err := s.store.GetTrack(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return

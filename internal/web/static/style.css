@@ -430,3 +430,73 @@ progress::-webkit-progress-value { background: var(--accent); }
 }
 .shortcuts-hint:hover .shortcuts-panel,
 .shortcuts-hint:focus .shortcuts-panel { display: block; }
+
+/* playlists: admin */
+.grid-header.grid-playlists, .grid-row.grid-playlists {
+  grid-template-columns: 48px 1fr 70px 100px 100px 80px;
+}
+.grid-row.grid-entries {
+  grid-template-columns: 24px 40px 1fr 160px;
+}
+.grid-row.is-dragging { opacity: 0.4; }
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: -0.3em;
+  user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.grid-row .unavailable {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+.grid-row .row-actions button:disabled { opacity: 0.3; cursor: default; }
+.grid-row .row-actions button:disabled:hover { color: var(--muted); }
+.section-title { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 1rem; }
+.add-track { flex-direction: row; align-items: stretch; gap: 0.6rem; margin-top: 1.25rem; }
+.add-track select {
+  flex: 1;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+.narrow-section { max-width: 480px; }
+
+/* playlists: share page tracklist */
+.tracklist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-row); }
+.tracklist-item { border-bottom: 1px solid var(--border-row); }
+.tracklist-select {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.9rem 0.25rem;
+  cursor: pointer;
+  color: var(--fg);
+}
+.tracklist-select:hover { background: var(--bg-raised); }
+.tracklist-select:focus-visible { outline: 1px solid var(--accent); }
+.tracklist-index { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.tracklist-title { font-size: 0.95rem; font-weight: 500; }
+.tracklist-item.is-current .tracklist-title,
+.tracklist-item.is-current .tracklist-index { color: var(--accent); }
+.tracklist-detail { display: none; padding: 0 0.25rem 1rem 2.6rem; }
+.tracklist-item.is-current .tracklist-detail { display: block; }
+.tracklist-detail .description { margin-bottom: 1rem; }
+
+@media (max-width: 640px) {
+  .grid-row.grid-entries { grid-template-columns: 20px 32px 1fr; }
+  .grid-row.grid-entries .row-actions { grid-column: 3; justify-content: flex-start; }
+}

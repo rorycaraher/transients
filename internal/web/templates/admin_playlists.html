@@ -1,0 +1,38 @@
+{{define "title"}}NLTL - Playlists{{end}}
+{{define "content"}}
+<main class="wide">
+  <a class="back-link" href="/admin">&#8592; Files</a>
+  <div class="list-header">
+    <h1>Playlists</h1>
+    <nav class="row">
+      <span class="count">{{printf "%02d" (len .Playlists)}} ITEMS</span>
+      <a class="btn btn-primary" href="/admin/playlists/new">+ New playlist</a>
+    </nav>
+  </div>
+
+  {{if not .Playlists}}
+    <p class="empty-state">No playlists yet. <a href="/admin/playlists/new">Create one</a>.</p>
+  {{else}}
+  <div class="grid-header grid-playlists">
+    <div>#</div>
+    <div>Title</div>
+    <div>Tracks</div>
+    <div>Expires</div>
+    <div>Added</div>
+    <div></div>
+  </div>
+  {{range $i, $p := .Playlists}}
+  <div class="grid-row grid-playlists">
+    <div class="index">{{printf "%02d" (add1 $i)}}</div>
+    <div class="title"><a href="/p/{{$p.Slug}}">{{$p.Title}}</a></div>
+    <div class="meta">{{$p.EntryCount}}</div>
+    <div class="meta">{{if $p.ExpiresAt.Valid}}{{$p.ExpiresAt.Time.Format "2006-01-02"}}{{else}}never{{end}}</div>
+    <div class="meta">{{$p.CreatedAt.Format "2006-01-02"}}</div>
+    <div class="row-actions">
+      <a href="/admin/playlists/{{$p.Slug}}/edit">Edit</a>
+    </div>
+  </div>
+  {{end}}
+  {{end}}
+</main>
+{{end}}

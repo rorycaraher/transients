@@ -16,8 +16,8 @@ type replaceRequestBody struct {
 
 // handleReplaceRequest swaps the audio behind an existing track: it deletes
 // the current R2 object, then points the track at a fresh object key
-// (mirroring CreatePending's role for a first-time upload, see
-// store.BeginReplace) and presigns a PUT to it. The old object is deleted
+// (mirroring CreatePendingTrack's role for a first-time upload, see
+// store.BeginTrackReplace) and presigns a PUT to it. The old object is deleted
 // before the DB row changes, so a track only breaks once its file is
 // actually gone — see ADR 0003 for why this isn't deferred until the
 // replacement is confirmed ready.
@@ -30,7 +30,7 @@ func (s *Server) handleReplaceRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	track, err := s.store.GetBySlug(slug)
+	track, err := s.store.GetTrack(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -48,7 +48,7 @@ func (s *Server) handleReplaceRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newObjectKey := slug + filepath.Ext(body.Filename)
-	if err := s.store.BeginReplace(slug, newObjectKey); err != nil {
+	if err := s.store.BeginTrackReplace(slug, newObjectKey); err != nil {
 		s.log.Error("begin replace failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

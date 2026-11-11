@@ -8,10 +8,10 @@ could either overwrite the `slug` column in place on the existing row, or
 add a surrogate id plus a slug-history/alias table so the old link could
 still be recognized (redirected, or shown a distinct "this link was
 rotated" page) instead of going fully dark. We chose **in-place mutation**:
-`RotateSlug` does a plain `UPDATE tracks SET slug = ?` (see
-`internal/store/store.go`), and the old slug is never recorded anywhere.
+`RotateTrackSlug` does a plain `UPDATE tracks SET slug = ?` (see
+`internal/store/track.go`), and the old slug is never recorded anywhere.
 Once rotated, `/t/{oldSlug}` and `/admin/tracks/{oldSlug}/...` 404 through
-the exact same `GetBySlug` → `ErrNotFound` path as a slug that never
+the exact same `GetTrack` → `ErrNotFound` path as a slug that never
 existed (`lookupReadyTrack` in `internal/web/share.go`).
 
 This works cleanly here because `slug` is the table's actual primary key,

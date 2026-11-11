@@ -20,23 +20,23 @@ func newTestStore(t *testing.T) *Store {
 func TestBeginReplaceUpdatesObjectKeyAndStatusOnly(t *testing.T) {
 	s := newTestStore(t)
 
-	if err := s.CreateFromDiscovery("track1", "track1.mp3", "My Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := s.CreateTrackFromDiscovery("track1", "track1.mp3", "My Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := s.MarkReady("track1", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := s.MarkTrackReady("track1", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
-	if err := s.IncrementPlayCount("track1"); err != nil {
-		t.Fatalf("IncrementPlayCount: %v", err)
-	}
-
-	if err := s.BeginReplace("track1", "track1.wav"); err != nil {
-		t.Fatalf("BeginReplace: %v", err)
+	if err := s.IncrementTrackPlayCount("track1"); err != nil {
+		t.Fatalf("IncrementTrackPlayCount: %v", err)
 	}
 
-	track, err := s.GetBySlug("track1")
+	if err := s.BeginTrackReplace("track1", "track1.wav"); err != nil {
+		t.Fatalf("BeginTrackReplace: %v", err)
+	}
+
+	track, err := s.GetTrack("track1")
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetTrack: %v", err)
 	}
 	if track.ObjectKey != "track1.wav" {
 		t.Fatalf("expected object_key to be updated, got %q", track.ObjectKey)
@@ -55,7 +55,7 @@ func TestBeginReplaceUpdatesObjectKeyAndStatusOnly(t *testing.T) {
 func TestBeginReplaceUnknownSlug(t *testing.T) {
 	s := newTestStore(t)
 
-	if err := s.BeginReplace("does-not-exist", "new-key.mp3"); err != ErrNotFound {
+	if err := s.BeginTrackReplace("does-not-exist", "new-key.mp3"); err != ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -63,27 +63,27 @@ func TestBeginReplaceUnknownSlug(t *testing.T) {
 func TestRotateSlugUpdatesSlugOnly(t *testing.T) {
 	s := newTestStore(t)
 
-	if err := s.CreateFromDiscovery("track1", "track1.mp3", "My Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := s.CreateTrackFromDiscovery("track1", "track1.mp3", "My Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := s.MarkReady("track1", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := s.MarkTrackReady("track1", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
-	if err := s.IncrementPlayCount("track1"); err != nil {
-		t.Fatalf("IncrementPlayCount: %v", err)
-	}
-
-	if err := s.RotateSlug("track1", "track2"); err != nil {
-		t.Fatalf("RotateSlug: %v", err)
+	if err := s.IncrementTrackPlayCount("track1"); err != nil {
+		t.Fatalf("IncrementTrackPlayCount: %v", err)
 	}
 
-	if _, err := s.GetBySlug("track1"); err != ErrNotFound {
+	if err := s.RotateTrackSlug("track1", "track2"); err != nil {
+		t.Fatalf("RotateTrackSlug: %v", err)
+	}
+
+	if _, err := s.GetTrack("track1"); err != ErrNotFound {
 		t.Fatalf("expected old slug to 404, got %v", err)
 	}
 
-	track, err := s.GetBySlug("track2")
+	track, err := s.GetTrack("track2")
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetTrack: %v", err)
 	}
 	if track.ObjectKey != "track1.mp3" {
 		t.Fatalf("expected object_key untouched, got %q", track.ObjectKey)
@@ -102,7 +102,7 @@ func TestRotateSlugUpdatesSlugOnly(t *testing.T) {
 func TestRotateSlugUnknownSlug(t *testing.T) {
 	s := newTestStore(t)
 
-	if err := s.RotateSlug("does-not-exist", "new-slug"); err != ErrNotFound {
+	if err := s.RotateTrackSlug("does-not-exist", "new-slug"); err != ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }

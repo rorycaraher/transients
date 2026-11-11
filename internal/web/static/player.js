@@ -1,5 +1,8 @@
 const audio = document.getElementById("audio");
-audio.src = PLAYER_DATA.audioUrl;
+const tracks = PLAYER_DATA.tracks;
+const isPlaylist = PLAYER_DATA.playlist;
+let current = 0;
+audio.src = tracks[current].audioUrl;
 
 const playBtn = document.getElementById("play-btn");
 const seekBar = document.getElementById("seek-bar");
@@ -46,13 +49,13 @@ audio.addEventListener("waiting", () => {
   console.warn("[player] waiting", mediaState());
 });
 
-// Beacon exactly once per page load: replays/scrubbing within the same
-// visit shouldn't inflate the count.
-let playRecorded = false;
+// Beacon at most once per Track per page load: replays/scrubbing within the
+// same visit shouldn't inflate the count.
+const playsRecorded = new Set();
 audio.addEventListener("play", () => {
-  if (playRecorded) return;
-  playRecorded = true;
-  fetch(PLAYER_DATA.playUrl, { method: "POST", keepalive: true }).catch(() => {});
+  if (playsRecorded.has(current)) return;
+  playsRecorded.add(current);
+  fetch(tracks[current].playUrl, { method: "POST", keepalive: true }).catch(() => {});
 });
 
 function setPlaying(playing) {
@@ -61,7 +64,47 @@ function setPlaying(playing) {
 }
 audio.addEventListener("play", () => setPlaying(true));
 audio.addEventListener("pause", () => setPlaying(false));
-audio.addEventListener("ended", () => setPlaying(false));
+audio.addEventListener("ended", () => {
+  if (isPlaylist && current < tracks.length - 1) {
+    loadTrack(current + 1, true);
+  } else {
+    setPlaying(false);
+  }
+});
+
+const tracklistItems = isPlaylist ? document.querySelectorAll(".tracklist-item") : [];
+
+function loadTrack(index, play) {
+  current = index;
+  audio.src = tracks[index].audioUrl;
+  seekFill.style.width = "0%";
+  timeCurrent.textContent = "0:00";
+  timeDuration.textContent = "0:00";
+  tracklistItems.forEach((item) => {
+    item.classList.toggle("is-current", Number(item.dataset.index) === index);
+  });
+  if (play) audio.play();
+}
+
+const RESTART_THRESHOLD_SECONDS = 3;
+
+// Advance preserves play/pause state; only the automatic Advance at the end
+// of a Track (the "ended" handler) always continues playing.
+function advance(step) {
+  const wasPlaying = !audio.paused;
+  if (step < 0 && audio.currentTime > RESTART_THRESHOLD_SECONDS) {
+    audio.currentTime = 0;
+    updateProgress();
+    return;
+  }
+  const next = current + step;
+  if (next < 0 || next >= tracks.length) return;
+  loadTrack(next, wasPlaying);
+}
+
+document.querySelectorAll(".tracklist-select").forEach((btn) => {
+  btn.addEventListener("click", () => loadTrack(Number(btn.dataset.index), true));
+});
 
 playBtn.addEventListener("click", () => {
   if (audio.paused) audio.play();
@@ -106,6 +149,14 @@ function isEditableTarget(target) {
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (isEditableTarget(e.target)) return;
+
+  if (isPlaylist && e.shiftKey) {
+    const key = e.key.toLowerCase();
+    if (key === "n" || key === "p") {
+      advance(key === "n" ? 1 : -1);
+      return;
+    }
+  }
 
   switch (e.key.toLowerCase()) {
     case "k":

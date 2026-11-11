@@ -1,5 +1,6 @@
 // Package web implements the HTTP surface: the single-admin login and
-// dashboard, the upload flow, and the public share page.
+// dashboard, the upload flow, Playlist curation, and the public Share
+// Pages for Tracks and Playlists.
 package web
 
 import (
@@ -47,6 +48,11 @@ func (s *Server) Mux() http.Handler {
 	mux.HandleFunc("GET /t/{slug}/oembed.json", s.handleOEmbed)
 	mux.HandleFunc("POST /t/{slug}/play", s.handleTrackPlay)
 
+	mux.HandleFunc("GET /p/{slug}", s.handlePlaylistShare)
+	mux.HandleFunc("GET /p/{slug}/entries/{id}/audio", s.handlePlaylistEntryAudio)
+	mux.HandleFunc("GET /p/{slug}/entries/{id}/download", s.handlePlaylistEntryDownload)
+	mux.HandleFunc("POST /p/{slug}/entries/{id}/play", s.handlePlaylistEntryPlay)
+
 	mux.Handle("GET /admin", s.requireAuth(s.handleAdminDashboard))
 	mux.Handle("GET /admin/upload", s.requireAuth(s.handleUploadForm))
 	mux.Handle("POST /admin/upload/request", s.requireAuth(s.handleUploadRequest))
@@ -56,6 +62,18 @@ func (s *Server) Mux() http.Handler {
 	mux.Handle("POST /admin/tracks/{slug}/delete", s.requireAuth(s.handleDelete))
 	mux.Handle("POST /admin/tracks/{slug}/rotate", s.requireAuth(s.handleRotateSlug))
 	mux.Handle("POST /admin/tracks/{slug}/replace/request", s.requireAuth(s.handleReplaceRequest))
+
+	mux.Handle("GET /admin/playlists", s.requireAuth(s.handleAdminPlaylists))
+	mux.Handle("GET /admin/playlists/new", s.requireAuth(s.handleNewPlaylistForm))
+	mux.Handle("POST /admin/playlists", s.requireAuth(s.handleCreatePlaylist))
+	mux.Handle("GET /admin/playlists/{slug}/edit", s.requireAuth(s.handlePlaylistEditForm))
+	mux.Handle("POST /admin/playlists/{slug}/edit", s.requireAuth(s.handlePlaylistEditSubmit))
+	mux.Handle("POST /admin/playlists/{slug}/tracks", s.requireAuth(s.handlePlaylistAddTrack))
+	mux.Handle("POST /admin/playlists/{slug}/entries/{id}/remove", s.requireAuth(s.handlePlaylistRemoveEntry))
+	mux.Handle("POST /admin/playlists/{slug}/entries/{id}/move", s.requireAuth(s.handlePlaylistMoveEntry))
+	mux.Handle("POST /admin/playlists/{slug}/order", s.requireAuth(s.handlePlaylistOrder))
+	mux.Handle("POST /admin/playlists/{slug}/rotate", s.requireAuth(s.handlePlaylistRotate))
+	mux.Handle("POST /admin/playlists/{slug}/delete", s.requireAuth(s.handlePlaylistDelete))
 
 	// Catch-all fallback: more specific patterns above always win, so this
 	// only fires for unmatched routes.

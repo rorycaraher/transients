@@ -1,0 +1,146 @@
+# AGENTS.md
+
+This file provides guidance to coding agents working with code in this repository.
+
+## What this is
+
+A self-hosted, single-admin audio file host and player: upload an audio
+file, get a shareable link, recipients stream it in-browser with a minimal
+progress-line player. Go backend, SQLite for metadata, server-rendered
+`html/template` + minimal vanilla JS — no build pipeline, one binary. There
+is no user table; `auth` implements exactly one operator via a bcrypt
+password check against `ADMIN_PASSWORD_HASH` and an HMAC-signed session
+cookie (no server-side session store).
+
+## Commands
+
+```sh
+mise run check:go                                  # what CI runs for Go (gofmt, tidy, build, vet, -race, govulncheck)
+go test ./internal/store/...                       # single package
+go test ./internal/auth/ -run TestCheckPassword     # single test
+mise run lint && mise run scan                     # infra checks CI runs (infra.yml); see README
+```
+
+Running the server locally needs real Cloudflare R2 + Queue credentials —
+see "Local mode" in README.md for the `dev` Tofu workspace + `.env.local`
+setup. There's no offline/mock mode; `config.Load()` hard-fails if any
+required env var is missing.
+
+## Architecture
+
+**Ingestion has two independent producers, one consumer.** Audio arrives
+either via a browser's presigned PUT (`POST /admin/upload/request` →
+`r2.PresignPut`) or via `rclone` dropping a file straight into the bucket.
+Both converge on `internal/ingest.Poller`, which polls Cloudflare Queue
+(R2 object-create event notifications, HTTP pull-consumer API in
+`queue_client.go`) every `PollInterval` and calls `ingestObject`:
+- if a `store.Track` row already exists for that object key (the browser-PUT
+  path, created as `pending` by `CreatePendingTrack` before the PUT even starts),
+  it's updated in place;
+- otherwise (the rclone path) a new row is created on the fly via
+  `CreateTrackFromDiscovery`, slug = random ID, title = filename.
+
+Either way, `ingestObject` does an R2 `Head()` to confirm the object exists
+and grab content-type/size, then `store.MarkTrackReady`.
+
+**Share links never expose real R2 URLs at rest.** `handleShare` mints a
+fresh presigned GET URL (`r2.PresignGet`) on every page load, so link expiry
+is enforced by R2 itself (the presign TTL), not just by hiding a page.
+`Track.Expired()` is an additional application-level check against
+`expires_at` shown before even generating that URL.
+
+**Playlists reference Tracks without exposing them.** `playlist_entries`
+joins `playlists` to `tracks` on their slugs with `ON UPDATE CASCADE ON
+DELETE CASCADE` (`db.Open` enables SQLite foreign keys), so Rotate on either
+side and Track deletion need no Playlist-specific code. The public Playlist
+Share Page (`/p/{slug}`) addresses each Track only by entry ID —
+`/p/{slug}/entries/{id}/{audio,download,play}` — never by the Track's slug
+(ADR 0006), and `.../audio` presigns per request rather than per page load
+so a long-open Playlist outlives `PresignedGetTTL`. `player.js` treats every
+page as a queue: `PLAYER_DATA = {playlist, tracks: [...]}`, where a Track's
+Share Page and Embed are a one-element, non-playlist queue.
+
+**Templates**: `internal/web/templates.go` embeds `templates/*.html` and
+`static/` via `go:embed`. Every page template is parsed together with
+`layout.html` under a `pageNames` list — adding a new page means adding it
+to both `pageNames` and the mux in `server.go`. Because static assets and
+templates are embedded, **any change under `internal/web/templates/` or
+`internal/web/static/` changes the compiled binary**, not just "frontend
+files" — this matters for the deploy workflow's path filter (see below).
+
+**Routing**: `net/http.ServeMux` (Go 1.22+ pattern syntax) in
+`server.go:Mux()`. The exact-path root pattern is `GET /{$}`, not `GET /` —
+plain `/` is a subtree pattern and conflicts with `/static/`.
+
+**DB**: schema changes go through goose migrations in
+`internal/db/migrations/*.sql`, embedded via `go:embed` and applied
+automatically by `db.Open()` on every process start — there is no separate
+`goose` CLI step and none is needed on the VPS, consistent with the
+single-binary deploy model. `provider.Close()` must never be called on the
+goose `Provider` built in `db.migrate()`: it closes the underlying
+`*sql.DB`, which here is the app's long-lived connection, not something
+scoped to migrations alone. `00001_baseline.sql` is the pre-goose
+`CREATE TABLE IF NOT EXISTS` schema (safe no-op against the already-existing
+prod table); later migrations add/drop columns from there.
+
+## Deployment
+
+Docker Compose on the VPS — see `docs/adr/0002-docker-container-deployment.md`
+for why (portability; the prior bare-binary/systemd model wasn't broken).
+The final image is `FROM scratch`: `modernc.org/sqlite` is a pure-Go driver,
+so `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build` needs no libc, and the
+image needs no shell. The container runs as non-root (`65532:65532`) with a
+read-only rootfs; the SQLite file is the one exception, bind-mounted from
+`/var/lib/transients` on the host, which must be pre-`chown`ed to
+`65532:65532` or the container can't write its DB file. `cmd/healthcheck`
+is a tiny static Go binary that GETs `/healthz` — it exists only because
+`scratch` has no `curl`/`wget` for the Dockerfile's `HEALTHCHECK` to exec.
+No registry, and no image transfer either: `~/transients` on the VPS is a
+clone of this repo, and `.github/workflows/deploy.yml` SSHes in, resets it
+to `origin/main`, and runs `docker compose up -d --build` there — the VPS
+builds its own image, same as another app already deployed on that box.
+`.env` also lives in `~/transients` (the deploy user's home dir, not
+`/opt`, so setup needs no `sudo` beyond the one-time chown on the
+bind-mounted DB directory). Caddy is untouched by any of this: it
+still runs directly on the host and reverse-proxies to `PORT`, since it
+also fronts other sites on the same VPS.
+
+## Git
+
+This repo overrides the global "never run state-changing git commands"
+rule from `~/dotfiles/claude/AGENTS.md` — that global rule still applies
+everywhere else. In this repo only:
+
+- Agents may `git add` / `commit` / `push` autonomously, on any branch
+  **except `main`**. Before an autonomous commit, `mise run check:go`
+  must pass.
+- Commit messages: match the existing history's style — terse, lowercase,
+  no type-prefixes (e.g. `add notes and file-replace feature`, not
+  `feat: add notes`).
+- Once work on a branch is ready, an agent may open a `dev` → `main` PR
+  autonomously via `gh pr create` — no need to ask first. PR title follows
+  the same terse commit style; PR body is a short Summary + Test plan (a
+  deliberate change from this repo's past PRs, which all had empty bodies).
+- Merging into `main` stays manual. `main` has no branch protection and a
+  push to it auto-triggers `.github/workflows/deploy.yml`, which rebuilds
+  and restarts the container on the VPS with no review step — an agent never
+  merges or pushes to `main` itself; that's the one checkpoint before prod.
+- Everything else the global rule covers — merge, rebase, reset, checkout
+  (branch-switch or file-restore), stash, branch/tag create-or-delete —
+  stays manual here too.
+
+## Conventions
+
+- No comments explaining *what* code does; only for non-obvious *why*
+  (see the `Track.Expired()` / presign-TTL note above for the kind of thing
+  worth a comment).
+- Package doc comments describe the package's role in the pipeline, not
+  just its contents (see the top of `ingest`, `r2`, `auth`, `web`).
+- `docs/adr/` holds hard-to-reverse, non-obvious decisions (frontend
+  assets, deployment, Replace, policy checks, Rotate, Playlist
+  containment) — check there before assuming a design choice (e.g.
+  dark-only theme, system fonts only) was an oversight.
+- `CONTEXT.md` is the domain glossary (Track, Audio File, Available, Play,
+  Playlist, Share Page, Embed, Description, Replace, Rotate, and the
+  Seek/Skip/Jump/Advance playhead terms). Use those terms — and avoid the
+  listed synonyms — in code, commit messages, and UI copy.

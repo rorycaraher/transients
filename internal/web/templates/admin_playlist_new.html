@@ -1,0 +1,23 @@
+{{define "title"}}NLTL - New playlist{{end}}
+{{define "content"}}
+<main class="narrow">
+  <a class="back-link" href="/admin/playlists">&#8592; Back</a>
+  <h1>New playlist</h1>
+
+  <form method="post" action="/admin/playlists">
+    <label>
+      Title
+      <input type="text" name="title" required>
+    </label>
+    <label>
+      Description (shown publicly on the share page, blank = hidden)
+      <textarea name="description" rows="4"></textarea>
+    </label>
+    <label>
+      Expires at (blank = never)
+      <input type="date" name="expires_at">
+    </label>
+    <button type="submit" class="btn-block">Create playlist</button>
+  </form>
+</main>
+{{end}}

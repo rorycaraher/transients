@@ -1,0 +1,60 @@
+{{define "title"}}NLTL - {{.Playlist.Title}}{{end}}
+{{define "meta"}}
+<meta property="og:type" content="music.playlist">
+<meta property="og:title" content="{{.Playlist.Title}}">
+<meta property="og:description" content="{{if .Playlist.Description}}{{.Playlist.Description}}{{else}}Listen on NLTL Transients{{end}}">
+<meta property="og:url" content="{{.ShareURL}}">
+<meta property="og:image" content="{{.OGImageURL}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{.Playlist.Title}}">
+<meta name="twitter:image" content="{{.OGImageURL}}">
+{{end}}
+{{define "content"}}
+<main class="narrow">
+  <div class="eyebrow">Playlist</div>
+  <h1>{{.Playlist.Title}}</h1>
+  {{if .Playlist.Description}}
+  <p class="description">{{.Playlist.Description}}</p>
+  {{end}}
+  {{if .Tracks}}
+  {{template "player" .}}
+  <ol class="tracklist" id="tracklist">
+    {{range $i, $t := .Tracks}}
+    <li class="tracklist-item{{if eq $i 0}} is-current{{end}}" data-index="{{$i}}">
+      <button type="button" class="tracklist-select" data-index="{{$i}}">
+        <span class="tracklist-index">{{printf "%02d" (add1 $i)}}</span>
+        <span class="tracklist-title">{{$t.Title}}</span>
+      </button>
+      {{if or $t.Description $t.DownloadURL}}
+      <div class="tracklist-detail">
+        {{if $t.Description}}<p class="description">{{$t.Description}}</p>{{end}}
+        {{if $t.DownloadURL}}<a class="btn-ghost btn-block" href="{{$t.DownloadURL}}">Download file</a>{{end}}
+      </div>
+      {{end}}
+    </li>
+    {{end}}
+  </ol>
+  <script>
+    const PLAYER_DATA = {{.PlayerDataJSON}};
+  </script>
+  <script src="{{static "player.js"}}"></script>
+  {{else}}
+  <p class="empty-state">No tracks are available in this playlist right now.</p>
+  {{end}}
+</main>
+{{end}}
+{{define "footer-extra"}}
+{{if .Tracks}}
+<span class="shortcuts-hint" tabindex="0">
+  Keyboard shortcuts
+  <div class="shortcuts-panel" role="tooltip">
+    <div><kbd>k</kbd> <kbd>space</kbd> play / pause</div>
+    <div><kbd>j</kbd>/<kbd>l</kbd> back / forward 10s</div>
+    <div><kbd>0</kbd>&#8211;<kbd>9</kbd> jump to 0&#8211;90%</div>
+    <div><kbd>shift</kbd>+<kbd>n</kbd>/<kbd>p</kbd> next / previous track</div>
+  </div>
+</span>
+{{end}}
+{{end}}

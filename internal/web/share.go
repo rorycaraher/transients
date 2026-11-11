@@ -11,10 +11,19 @@ import (
 	"github.com/rorycaraher/transients/internal/store"
 )
 
+// playerData is PLAYER_DATA in player.js: a single-Track Share Page or
+// Embed is a one-element, non-playlist queue.
 type playerData struct {
-	Title    string `json:"title"`
-	AudioURL string `json:"audioUrl"`
-	PlayURL  string `json:"playUrl"`
+	Playlist bool          `json:"playlist"`
+	Tracks   []playerTrack `json:"tracks"`
+}
+
+type playerTrack struct {
+	Title       string `json:"title"`
+	AudioURL    string `json:"audioUrl"`
+	PlayURL     string `json:"playUrl"`
+	Description string `json:"description,omitempty"`
+	DownloadURL string `json:"downloadUrl,omitempty"`
 }
 
 // lookupReadyTrack fetches the track for slug and enforces the same
@@ -23,7 +32,7 @@ type playerData struct {
 // expired tracks reached via the embed/oEmbed routes (ok is false and the
 // response has already been written in every failure case).
 func (s *Server) lookupReadyTrack(w http.ResponseWriter, r *http.Request, slug string) (*store.Track, bool) {
-	track, err := s.store.GetBySlug(slug)
+	track, err := s.store.GetTrack(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		s.handleNotFound(w, r)
 		return nil, false
@@ -49,9 +58,11 @@ func (s *Server) playerTemplateData(r *http.Request, track *store.Track) (map[st
 		return nil, err
 	}
 	dataJSON, err := json.Marshal(playerData{
-		Title:    track.Title,
-		AudioURL: audioURL,
-		PlayURL:  "/t/" + track.Slug + "/play",
+		Tracks: []playerTrack{{
+			Title:    track.Title,
+			AudioURL: audioURL,
+			PlayURL:  "/t/" + track.Slug + "/play",
+		}},
 	})
 	if err != nil {
 		return nil, err
@@ -102,17 +113,17 @@ func (s *Server) handleShare(w http.ResponseWriter, r *http.Request) {
 // handleTrackPlay records one play for slug, beaconed by player.js on the
 // audio element's first "play" event per page load. Public and
 // unauthenticated like the rest of the share surface, and deliberately
-// undiscriminating about who's calling it (see IncrementPlayCount).
+// undiscriminating about who's calling it (see IncrementTrackPlayCount).
 func (s *Server) handleTrackPlay(w http.ResponseWriter, r *http.Request) {
 	track, ok := s.lookupReadyTrack(w, r, r.PathValue("slug"))
 	if !ok {
 		return
 	}
-	if track.Expired() {
+	if !track.Available() {
 		s.handleNotFound(w, r)
 		return
 	}
-	if err := s.store.IncrementPlayCount(track.Slug); err != nil {
+	if err := s.store.IncrementTrackPlayCount(track.Slug); err != nil {
 		s.log.Error("increment play count failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
