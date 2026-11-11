@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents working with code in this repository.
 
 ## What this is
 
@@ -100,19 +100,19 @@ This repo overrides the global "never run state-changing git commands"
 rule from `~/dotfiles/claude/AGENTS.md` — that global rule still applies
 everywhere else. In this repo only:
 
-- Claude may `git add` / `commit` / `push` autonomously, on any branch
+- Agents may `git add` / `commit` / `push` autonomously, on any branch
   **except `main`**. Before an autonomous commit, `mise run check:go`
   must pass.
 - Commit messages: match the existing history's style — terse, lowercase,
   no type-prefixes (e.g. `add notes and file-replace feature`, not
   `feat: add notes`).
-- Once work on a branch is ready, Claude may open a `dev` → `main` PR
+- Once work on a branch is ready, an agent may open a `dev` → `main` PR
   autonomously via `gh pr create` — no need to ask first. PR title follows
   the same terse commit style; PR body is a short Summary + Test plan (a
   deliberate change from this repo's past PRs, which all had empty bodies).
 - Merging into `main` stays manual. `main` has no branch protection and a
   push to it auto-triggers `.github/workflows/deploy.yml`, which rebuilds
-  and restarts the container on the VPS with no review step — Claude never
+  and restarts the container on the VPS with no review step — an agent never
   merges or pushes to `main` itself; that's the one checkpoint before prod.
 - Everything else the global rule covers — merge, rebase, reset, checkout
   (branch-switch or file-restore), stash, branch/tag create-or-delete —
@@ -125,6 +125,11 @@ everywhere else. In this repo only:
   worth a comment).
 - Package doc comments describe the package's role in the pipeline, not
   just its contents (see the top of `ingest`, `r2`, `auth`, `web`).
-- `docs/adr/` holds hard-to-reverse, non-obvious frontend/infra decisions
-  (currently just the no-CDN-assets ADR) — check there before assuming a
-  design choice (e.g. dark-only theme, system fonts only) was an oversight.
+- `docs/adr/` holds hard-to-reverse, non-obvious decisions (frontend
+  assets, deployment, Replace, policy checks, Rotate, Playlist
+  containment) — check there before assuming a design choice (e.g.
+  dark-only theme, system fonts only) was an oversight.
+- `CONTEXT.md` is the domain glossary (Track, Audio File, Available, Play,
+  Playlist, Share Page, Embed, Description, Replace, Rotate, and the
+  Seek/Skip/Jump/Advance playhead terms). Use those terms — and avoid the
+  listed synonyms — in code, commit messages, and UI copy.
