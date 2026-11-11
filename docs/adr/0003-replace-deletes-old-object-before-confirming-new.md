@@ -14,7 +14,7 @@ key somewhere (the track row's `object_key` column has to be overwritten to
 the new key *before* the upload starts, so `ingestObject` routes the
 replacement to the existing row instead of minting a new track — see
 `internal/ingest/poller.go`), plus poller-side logic to delete the old key
-once `MarkReady` fires for the replacement. That's real complexity — a
+once `MarkTrackReady` fires for the replacement. That's real complexity — a
 second cleanup path through the async ingest pipeline — for a failure
 window that's small and self-evident: the admin who just clicked replace
 will notice immediately if the share link breaks, and nothing else in this

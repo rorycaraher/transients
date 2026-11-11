@@ -35,13 +35,13 @@ Both converge on `internal/ingest.Poller`, which polls Cloudflare Queue
 (R2 object-create event notifications, HTTP pull-consumer API in
 `queue_client.go`) every `PollInterval` and calls `ingestObject`:
 - if a `store.Track` row already exists for that object key (the browser-PUT
-  path, created as `pending` by `CreatePending` before the PUT even starts),
+  path, created as `pending` by `CreatePendingTrack` before the PUT even starts),
   it's updated in place;
 - otherwise (the rclone path) a new row is created on the fly via
-  `CreateFromDiscovery`, slug = random ID, title = filename.
+  `CreateTrackFromDiscovery`, slug = random ID, title = filename.
 
 Either way, `ingestObject` does an R2 `Head()` to confirm the object exists
-and grab content-type/size, then `store.MarkReady`.
+and grab content-type/size, then `store.MarkTrackReady`.
 
 **Share links never expose real R2 URLs at rest.** `handleShare` mints a
 fresh presigned GET URL (`r2.PresignGet`) on every page load, so link expiry

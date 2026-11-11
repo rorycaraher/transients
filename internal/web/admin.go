@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Server) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
-	tracks, err := s.store.ListAll()
+	tracks, err := s.store.ListTracks()
 	if err != nil {
 		s.log.Error("list tracks failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -21,7 +21,7 @@ func (s *Server) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleEditForm(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
-	track, err := s.store.GetBySlug(slug)
+	track, err := s.store.GetTrack(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -79,14 +79,14 @@ func (s *Server) handleEditSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRotateSlug generates a fresh slug and repoints the track at it (see
-// store.RotateSlug), so the old /t/{slug} link 404s exactly like an unknown
+// store.RotateTrackSlug), so the old /t/{slug} link 404s exactly like an unknown
 // one from then on. Everything else about the track — file, expiry, stats —
 // is untouched.
 func (s *Server) handleRotateSlug(w http.ResponseWriter, r *http.Request) {
 	oldSlug := r.PathValue("slug")
 	newSlug := idgen.New()
 
-	if err := s.store.RotateSlug(oldSlug, newSlug); err != nil {
+	if err := s.store.RotateTrackSlug(oldSlug, newSlug); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			http.NotFound(w, r)
 			return
@@ -102,7 +102,7 @@ func (s *Server) handleRotateSlug(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 
-	track, err := s.store.GetBySlug(slug)
+	track, err := s.store.GetTrack(slug)
 	if errors.Is(err, store.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -119,7 +119,7 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.Delete(slug); err != nil {
+	if err := s.store.DeleteTrack(slug); err != nil {
 		s.log.Error("delete track failed", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

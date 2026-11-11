@@ -163,11 +163,11 @@ func TestEditSubmitDescriptionRoundTrip(t *testing.T) {
 	mux := srv.Mux()
 	cookies := login(t, mux, cfg.SessionSecret)
 
-	if err := srv.store.CreateFromDiscovery("description-test", "description-test.mp3", "Description Test Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := srv.store.CreateTrackFromDiscovery("description-test", "description-test.mp3", "Description Test Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("description-test", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := srv.store.MarkTrackReady("description-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
 
 	form := url.Values{
@@ -185,9 +185,9 @@ func TestEditSubmitDescriptionRoundTrip(t *testing.T) {
 		t.Fatalf("expected redirect after edit, got %d: %s", w.Code, w.Body.String())
 	}
 
-	track, err := srv.store.GetBySlug("description-test")
+	track, err := srv.store.GetTrack("description-test")
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetTrack: %v", err)
 	}
 	if track.Description != "line one\nline two" {
 		t.Fatalf("expected description to round-trip with newlines, got %q", track.Description)
@@ -209,11 +209,11 @@ func TestRotateSlugBreaksOldLinkAndServesNew(t *testing.T) {
 	mux := srv.Mux()
 	cookies := login(t, mux, cfg.SessionSecret)
 
-	if err := srv.store.CreateFromDiscovery("rotate-test", "rotate-test.mp3", "Rotate Test Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := srv.store.CreateTrackFromDiscovery("rotate-test", "rotate-test.mp3", "Rotate Test Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("rotate-test", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := srv.store.MarkTrackReady("rotate-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tracks/rotate-test/rotate", nil)
@@ -271,11 +271,11 @@ func TestShareHidesEmptyDescription(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()
 
-	if err := srv.store.CreateFromDiscovery("no-description-test", "no-description-test.mp3", "No Description Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := srv.store.CreateTrackFromDiscovery("no-description-test", "no-description-test.mp3", "No Description Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("no-description-test", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := srv.store.MarkTrackReady("no-description-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/t/no-description-test", nil)
@@ -308,9 +308,9 @@ func TestUploadRequestStoresDescription(t *testing.T) {
 
 	slug := extractJSONString(t, w.Body.String(), "slug")
 
-	track, err := srv.store.GetBySlug(slug)
+	track, err := srv.store.GetTrack(slug)
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetTrack: %v", err)
 	}
 	if track.Description != "line one\nline two" {
 		t.Fatalf("expected description to be stored from upload request, got %q", track.Description)
@@ -334,11 +334,11 @@ func TestShareEmbedAndOEmbed(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()
 
-	if err := srv.store.CreateFromDiscovery("embed-test", "embed-test.mp3", "Embed Test Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := srv.store.CreateTrackFromDiscovery("embed-test", "embed-test.mp3", "Embed Test Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("embed-test", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := srv.store.MarkTrackReady("embed-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
 
 	shareReq := httptest.NewRequest(http.MethodGet, "/t/embed-test", nil)
@@ -389,11 +389,11 @@ func TestTrackPlayIncrementsCount(t *testing.T) {
 	srv, _ := newTestServer(t)
 	mux := srv.Mux()
 
-	if err := srv.store.CreateFromDiscovery("play-test", "play-test.mp3", "Play Test Track"); err != nil {
-		t.Fatalf("CreateFromDiscovery: %v", err)
+	if err := srv.store.CreateTrackFromDiscovery("play-test", "play-test.mp3", "Play Test Track"); err != nil {
+		t.Fatalf("CreateTrackFromDiscovery: %v", err)
 	}
-	if err := srv.store.MarkReady("play-test", "audio/mpeg", 1234); err != nil {
-		t.Fatalf("MarkReady: %v", err)
+	if err := srv.store.MarkTrackReady("play-test", "audio/mpeg", 1234); err != nil {
+		t.Fatalf("MarkTrackReady: %v", err)
 	}
 
 	for i := 0; i < 2; i++ {
@@ -405,9 +405,9 @@ func TestTrackPlayIncrementsCount(t *testing.T) {
 		}
 	}
 
-	track, err := srv.store.GetBySlug("play-test")
+	track, err := srv.store.GetTrack("play-test")
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetTrack: %v", err)
 	}
 	if track.PlayCount != 2 {
 		t.Fatalf("expected play_count 2, got %d", track.PlayCount)

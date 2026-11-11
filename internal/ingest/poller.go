@@ -101,7 +101,7 @@ func (p *Poller) handleMessage(ctx context.Context, msg queueMessage) error {
 }
 
 func (p *Poller) ingestObject(ctx context.Context, key string) error {
-	track, err := p.store.GetByObjectKey(key)
+	track, err := p.store.GetTrackByObjectKey(key)
 	if err != nil && err != store.ErrNotFound {
 		return fmt.Errorf("lookup track by object key: %w", err)
 	}
@@ -110,7 +110,7 @@ func (p *Poller) ingestObject(ctx context.Context, key string) error {
 		// Discovered with no pre-existing pending row: an rclone drop.
 		slug := idgen.New()
 		title := path.Base(key)
-		if err := p.store.CreateFromDiscovery(slug, key, title); err != nil {
+		if err := p.store.CreateTrackFromDiscovery(slug, key, title); err != nil {
 			return fmt.Errorf("create discovered track: %w", err)
 		}
 		track = &store.Track{Slug: slug, ObjectKey: key, Title: title}
@@ -121,15 +121,15 @@ func (p *Poller) ingestObject(ctx context.Context, key string) error {
 		// Object was deleted (e.g. via the admin dashboard) after this
 		// event was already enqueued. Nothing to ingest; ack and move on.
 		p.log.Warn("ingest: object no longer exists, dropping event", "object_key", key)
-		_ = p.store.MarkFailed(track.Slug)
+		_ = p.store.MarkTrackFailed(track.Slug)
 		return nil
 	}
 	if err != nil {
-		_ = p.store.MarkFailed(track.Slug)
+		_ = p.store.MarkTrackFailed(track.Slug)
 		return fmt.Errorf("head object %s: %w", key, err)
 	}
 
-	if err := p.store.MarkReady(track.Slug, meta.ContentType, meta.SizeBytes); err != nil {
+	if err := p.store.MarkTrackReady(track.Slug, meta.ContentType, meta.SizeBytes); err != nil {
 		return fmt.Errorf("mark track ready: %w", err)
 	}
 
