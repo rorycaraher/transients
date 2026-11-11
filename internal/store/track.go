@@ -33,6 +33,12 @@ func (t *Track) Expired() bool {
 	return t.ExpiresAt.Valid && time.Now().After(t.ExpiresAt.Time)
 }
 
+// Available reports whether a listener may hear this Track right now, via
+// its own Share Page or any Playlist.
+func (t *Track) Available() bool {
+	return t.Status == StatusReady && !t.Expired()
+}
+
 // CreatePendingTrack inserts a row for a presigned upload that hasn't been
 // discovered by the ingest pipeline yet. slug == objectKey for this path.
 func (s *Store) CreatePendingTrack(slug, objectKey, title string, expiresAt *time.Time, downloadable bool, description string) error {
@@ -208,12 +214,15 @@ func (s *Store) scanRow(row rowScanner) (*Track, error) {
 
 func (s *Store) scan(row rowScanner) (*Track, error) {
 	var t Track
-	err := row.Scan(
-		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
-		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount, &t.Description,
-	)
-	if err != nil {
+	if err := row.Scan(t.scanDest()...); err != nil {
 		return nil, err
 	}
 	return &t, nil
+}
+
+func (t *Track) scanDest() []any {
+	return []any{
+		&t.Slug, &t.ObjectKey, &t.Title, &t.Status,
+		&t.ContentType, &t.SizeBytes, &t.Downloadable, &t.ExpiresAt, &t.CreatedAt, &t.ReadyAt, &t.PlayCount, &t.Description,
+	}
 }

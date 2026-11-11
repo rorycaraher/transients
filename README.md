@@ -16,6 +16,9 @@ enable download per-file.
   ready once the object is confirmed to exist in R2.
 - Share pages mint a fresh short-lived presigned GET URL on each load, so
   link expiry is enforced by R2 itself, not just by hiding the page.
+- Playlists group tracks into an ordered list with its own share link
+  (`/p/…`) and optional expiry; recipients get a clickable tracklist that
+  plays in sequence, without ever seeing the tracks' individual links.
 - Schema changes go through goose migrations (`internal/db/migrations`),
   embedded in the binary and applied automatically on startup — no
   separate migration step.

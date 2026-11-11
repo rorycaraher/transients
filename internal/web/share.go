@@ -11,10 +11,19 @@ import (
 	"github.com/rorycaraher/transients/internal/store"
 )
 
+// playerData is PLAYER_DATA in player.js: a single-Track Share Page or
+// Embed is a one-element, non-playlist queue.
 type playerData struct {
-	Title    string `json:"title"`
-	AudioURL string `json:"audioUrl"`
-	PlayURL  string `json:"playUrl"`
+	Playlist bool          `json:"playlist"`
+	Tracks   []playerTrack `json:"tracks"`
+}
+
+type playerTrack struct {
+	Title       string `json:"title"`
+	AudioURL    string `json:"audioUrl"`
+	PlayURL     string `json:"playUrl"`
+	Description string `json:"description,omitempty"`
+	DownloadURL string `json:"downloadUrl,omitempty"`
 }
 
 // lookupReadyTrack fetches the track for slug and enforces the same
@@ -49,9 +58,11 @@ func (s *Server) playerTemplateData(r *http.Request, track *store.Track) (map[st
 		return nil, err
 	}
 	dataJSON, err := json.Marshal(playerData{
-		Title:    track.Title,
-		AudioURL: audioURL,
-		PlayURL:  "/t/" + track.Slug + "/play",
+		Tracks: []playerTrack{{
+			Title:    track.Title,
+			AudioURL: audioURL,
+			PlayURL:  "/t/" + track.Slug + "/play",
+		}},
 	})
 	if err != nil {
 		return nil, err
@@ -108,7 +119,7 @@ func (s *Server) handleTrackPlay(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if track.Expired() {
+	if !track.Available() {
 		s.handleNotFound(w, r)
 		return
 	}

@@ -1,0 +1,88 @@
+{{define "title"}}NLTL - Edit playlist{{end}}
+{{define "content"}}
+<main class="wide">
+  <a class="back-link" href="/admin/playlists">&#8592; Back</a>
+  <h1>Edit playlist</h1>
+  <p class="description">Link: <a href="{{.ShareURL}}">{{.ShareURL}}</a></p>
+
+  <section>
+    <h2 class="section-title">Tracks</h2>
+    {{if not .Entries}}
+      <p class="empty-state">No tracks yet. Add one below.</p>
+    {{else}}
+    <div id="entries" data-order-url="/admin/playlists/{{.Playlist.Slug}}/order">
+      {{$slug := .Playlist.Slug}}
+      {{$last := len .Entries}}
+      {{range $i, $e := .Entries}}
+      <div class="grid-row grid-entries" data-entry-id="{{$e.ID}}">
+        <div class="drag-handle" draggable="true" title="Drag to reorder" aria-hidden="true">&#8942;&#8942;</div>
+        <div class="index">{{printf "%02d" (add1 $i)}}</div>
+        <div class="title">
+          {{$e.Track.Title}}
+          {{if not $e.Track.Available}}<span class="unavailable">{{if $e.Track.Expired}}expired{{else}}{{$e.Track.Status}}{{end}} &#8212; hidden from listeners</span>{{end}}
+        </div>
+        <div class="row-actions">
+          <form method="post" action="/admin/playlists/{{$slug}}/entries/{{$e.ID}}/move" class="inline">
+            <input type="hidden" name="dir" value="up">
+            <button type="submit" aria-label="Move up" {{if eq $i 0}}disabled{{end}}>&#8593;</button>
+          </form>
+          <form method="post" action="/admin/playlists/{{$slug}}/entries/{{$e.ID}}/move" class="inline">
+            <input type="hidden" name="dir" value="down">
+            <button type="submit" aria-label="Move down" {{if eq (add1 $i) $last}}disabled{{end}}>&#8595;</button>
+          </form>
+          <form method="post" action="/admin/playlists/{{$slug}}/entries/{{$e.ID}}/remove" class="inline">
+            <button type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+
+    {{if .AddableTracks}}
+    <form method="post" action="/admin/playlists/{{.Playlist.Slug}}/tracks" class="add-track">
+      <select name="track_slug" required>
+        {{range .AddableTracks}}<option value="{{.Slug}}">{{.Title}}{{if not .Available}} ({{if .Expired}}expired{{else}}{{.Status}}{{end}}){{end}}</option>{{end}}
+      </select>
+      <button type="submit">Add track</button>
+    </form>
+    {{end}}
+  </section>
+
+  <section class="replace-section narrow-section">
+    <h2>Details</h2>
+    <form method="post" action="/admin/playlists/{{.Playlist.Slug}}/edit">
+      <label>
+        Title
+        <input type="text" name="title" value="{{.Playlist.Title}}" required>
+      </label>
+      <label>
+        Description (shown publicly on the share page, blank = hidden)
+        <textarea name="description" rows="4">{{.Playlist.Description}}</textarea>
+      </label>
+      <label>
+        Expires at (blank = never)
+        <input type="date" name="expires_at" value="{{.ExpiresAtValue}}">
+      </label>
+      <button type="submit" class="btn-block">Save</button>
+    </form>
+  </section>
+
+  <section class="replace-section narrow-section">
+    <h2>Rotate link</h2>
+    <p class="description">Current link: /p/{{.Playlist.Slug}}</p>
+    <form method="post" action="/admin/playlists/{{.Playlist.Slug}}/rotate" onsubmit="return confirm('Rotate this playlist\'s link? The current share link will stop working immediately.')">
+      <button type="submit" class="btn-block">Rotate link</button>
+    </form>
+  </section>
+
+  <section class="replace-section narrow-section">
+    <h2>Delete playlist</h2>
+    <p class="description">The tracks themselves are not affected.</p>
+    <form method="post" action="/admin/playlists/{{.Playlist.Slug}}/delete" onsubmit="return confirm('Delete this playlist permanently?')">
+      <button type="submit" class="btn-block danger">Delete playlist</button>
+    </form>
+  </section>
+</main>
+<script src="{{static "playlist_admin.js"}}"></script>
+{{end}}

@@ -49,6 +49,17 @@ is enforced by R2 itself (the presign TTL), not just by hiding a page.
 `Track.Expired()` is an additional application-level check against
 `expires_at` shown before even generating that URL.
 
+**Playlists reference Tracks without exposing them.** `playlist_entries`
+joins `playlists` to `tracks` on their slugs with `ON UPDATE CASCADE ON
+DELETE CASCADE` (`db.Open` enables SQLite foreign keys), so Rotate on either
+side and Track deletion need no Playlist-specific code. The public Playlist
+Share Page (`/p/{slug}`) addresses each Track only by entry ID —
+`/p/{slug}/entries/{id}/{audio,download,play}` — never by the Track's slug
+(ADR 0006), and `.../audio` presigns per request rather than per page load
+so a long-open Playlist outlives `PresignedGetTTL`. `player.js` treats every
+page as a queue: `PLAYER_DATA = {playlist, tracks: [...]}`, where a Track's
+Share Page and Embed are a one-element, non-playlist queue.
+
 **Templates**: `internal/web/templates.go` embeds `templates/*.html` and
 `static/` via `go:embed`. Every page template is parsed together with
 `layout.html` under a `pageNames` list — adding a new page means adding it

@@ -5,6 +5,7 @@
     <h1>Your files</h1>
     <nav class="row">
       <span class="count">{{printf "%02d" (len .Tracks)}} ITEMS</span>
+      <a class="btn-ghost btn" href="/admin/playlists">Playlists</a>
       <a class="btn btn-primary" href="/admin/upload">+ Upload</a>
       <form method="post" action="/logout" class="inline"><button type="submit" class="btn-ghost">Log out</button></form>
     </nav>
@@ -36,7 +37,7 @@
       <a href="/admin/tracks/{{$t.Slug}}/edit">Edit</a>
       <button type="button" class="row-replace-trigger" data-slug="{{$t.Slug}}">Replace</button>
       <input type="file" class="row-replace-file" data-slug="{{$t.Slug}}" accept="audio/*" hidden>
-      <form method="post" action="/admin/tracks/{{$t.Slug}}/delete" class="inline" onsubmit="return confirm('Delete this track permanently?')">
+      <form method="post" action="/admin/tracks/{{$t.Slug}}/delete" class="inline" onsubmit="return confirm({{index $.DeleteConfirms $t.Slug}})">
         <button type="submit">Delete</button>
       </form>
     </div>

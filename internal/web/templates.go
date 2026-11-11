@@ -50,7 +50,11 @@ var pageNames = []string{
 	"admin_dashboard.html",
 	"admin_upload.html",
 	"admin_edit.html",
+	"admin_playlists.html",
+	"admin_playlist_new.html",
+	"admin_playlist_edit.html",
 	"share.html",
+	"playlist_share.html",
 	"share_expired.html",
 	"not_found.html",
 }
